@@ -149,7 +149,7 @@ HTML_CONTENT = r"""
                 <button @click="createNewProfile" class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 border border-blue-200/50 px-4 py-1.5 rounded-full font-bold text-sm transition shadow-sm backdrop-blur-md">{{ t('addProfile') }}</button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="flex-1 overflow-y-auto p-3 space-y-2">
                 <div v-for="(profile, index) in sortedProfiles" :key="profile.id"
                      draggable="true"
                      @dragstart="onDragStart(index, $event)"
@@ -169,25 +169,17 @@ HTML_CONTENT = r"""
                     
                     <div class="absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-slate-400/50 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition px-1 z-20" :title="t('dragHint')">⋮⋮</div>
 
-                    <div class="p-4 pl-7 flex items-start gap-3">
-                        <div class="text-3xl pt-0.5 drop-shadow-md">{{ profile.icon || '⚙️' }}</div>
-                        <div class="flex-1 min-w-0">
-                            <div :title="profile.name" class="font-bold text-[15px] text-slate-800 truncate">{{ profile.name }}</div>
-                            <div :title="profile.baseUrl" class="text-xs truncate mt-1 font-medium" :class="activeProfileId === profile.id ? 'text-blue-600/80' : 'text-slate-500'">{{ profile.baseUrl || t('unsetUrl') }}</div>
-                            <div :title="profile.model" class="text-xs font-mono mt-1 px-2 py-0.5 rounded-md inline-block border model-badge" :class="activeProfileId === profile.id ? 'bg-blue-200/60 text-blue-800 border-blue-300/50' : 'bg-slate-200/50 text-slate-600 border-transparent'">{{ profile.model || t('unsetModel') }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="px-4 py-2.5 border-t flex items-center justify-between" :class="activeProfileId === profile.id ? 'bg-blue-200/30 border-blue-300/50' : 'bg-white/30 border-white/50'">
-                        <button @click.stop="enableProfile(profile.id)" class="text-xs px-4 py-1.5 rounded-full font-bold transition flex items-center gap-1.5 shadow-sm" 
+                    <div class="px-3 py-2.5 pl-7 flex items-center gap-2 min-w-0">
+                        <div class="text-2xl leading-none drop-shadow-sm flex-shrink-0">{{ profile.icon || '⚙️' }}</div>
+                        <div :title="profile.name" class="font-bold text-[14px] text-slate-800 truncate min-w-0 flex-1">{{ profile.name }}</div>
+                        <button @click.stop="enableProfile(profile.id)" class="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-full font-bold transition flex items-center justify-center shadow-sm"
                                 :class="activeProfileId === profile.id ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none' : 'bg-white/70 border border-slate-200 text-slate-600 hover:bg-white'">
-                            {{ activeProfileId === profile.id ? t('running') : t('enable') }}
+                            {{ activeProfileId === profile.id ? t('runningCompact') : t('enableCompact') }}
                         </button>
-                        <div class="flex gap-1 rounded-full p-0.5 border" :class="activeProfileId === profile.id ? 'bg-white/40 border-blue-300/30' : 'bg-white/50 border-white/60'">
-                            <button @click.stop="testProfile(profile)" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition" :title="t('testConnection')">⚡</button>
-                            <button @click.stop="editProfile(profile.id)" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition" :title="t('editProfile')">✏️</button>
-                            <button @click.stop="deleteProfile(profile.id)" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition" :title="t('deleteProfile')">🗑️</button>
+                        <div class="flex gap-1 rounded-full p-0.5 border flex-shrink-0" :class="activeProfileId === profile.id ? 'bg-white/40 border-blue-300/30' : 'bg-white/50 border-white/60'">
+                            <button @click.stop="testProfile(profile)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition" :title="t('testConnection')">⚡</button>
+                            <button @click.stop="editProfile(profile.id)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition" :title="t('editProfile')">✏️</button>
+                            <button @click.stop="deleteProfile(profile.id)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-100 rounded-full transition" :title="t('deleteProfile')">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -395,7 +387,9 @@ HTML_CONTENT = r"""
                         unsetUrl: '尚未設定 URL',
                         unsetModel: '尚未選擇模型',
                         running: '🟢 運行中',
+                        runningCompact: '運行中',
                         enable: '⚪ 設為啟用',
+                        enableCompact: '啟用',
                         testConnection: '測試連線',
                         editProfile: '編輯配置',
                         deleteProfile: '刪除',
@@ -499,7 +493,9 @@ HTML_CONTENT = r"""
                         unsetUrl: 'URL not set',
                         unsetModel: 'Model not selected',
                         running: '🟢 Running',
+                        runningCompact: 'Running',
                         enable: '⚪ Enable',
+                        enableCompact: 'Enable',
                         testConnection: 'Test',
                         editProfile: 'Edit',
                         deleteProfile: 'Delete',
