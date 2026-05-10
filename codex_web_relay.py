@@ -160,8 +160,10 @@ HTML_CONTENT = r"""
                      class="rounded-2xl transition-all duration-200 relative flex flex-col cursor-pointer overflow-hidden group"
                      :class="[
                         activeProfileId === profile.id 
-                            ? 'bg-gradient-to-br from-blue-100/95 via-indigo-50/95 to-blue-100/95 backdrop-blur-2xl border-2 border-blue-400 ring-4 ring-blue-400/30 shadow-xl shadow-blue-500/15 z-10' 
-                            : 'bg-white/40 border border-white/60 hover:bg-white/60 hover:shadow-md hover:border-white profile-card-inactive',
+                            ? 'bg-gradient-to-br from-emerald-100/95 via-green-50/95 to-teal-100/95 backdrop-blur-2xl border-2 border-emerald-400 ring-4 ring-emerald-400/30 shadow-xl shadow-emerald-500/15 z-10'
+                            : selectedProfileId === profile.id
+                                ? 'bg-white/70 border-2 border-blue-300 ring-2 ring-blue-300/30 shadow-md'
+                                : 'bg-white/40 border border-white/60 hover:bg-white/60 hover:shadow-md hover:border-white profile-card-inactive',
                         dragOverIndex === index ? 'border-dashed border-2 border-blue-500 bg-blue-50/50 scale-[1.02] shadow-lg' : '',
                         draggedIndex === index ? 'opacity-40 scale-95 shadow-none' : 'scale-100'
                      ]"
@@ -172,10 +174,6 @@ HTML_CONTENT = r"""
                     <div class="px-3 py-2.5 pl-7 flex items-center gap-2 min-w-0">
                         <div class="text-2xl leading-none drop-shadow-sm flex-shrink-0">{{ profile.icon || '⚙️' }}</div>
                         <div :title="profile.name" class="font-bold text-[14px] text-slate-800 truncate min-w-0 flex-1">{{ profile.name }}</div>
-                        <button @click.stop="enableProfile(profile.id)" class="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-full font-bold transition flex items-center justify-center shadow-sm"
-                                :class="activeProfileId === profile.id ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-none' : 'bg-white/70 border border-slate-200 text-slate-600 hover:bg-white'">
-                            {{ activeProfileId === profile.id ? t('runningCompact') : t('enableCompact') }}
-                        </button>
                         <div class="flex gap-1 rounded-full p-0.5 border flex-shrink-0" :class="activeProfileId === profile.id ? 'bg-white/40 border-blue-300/30' : 'bg-white/50 border-white/60'">
                             <button @click.stop="testProfile(profile)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition" :title="t('testConnection')">⚡</button>
                             <button @click.stop="editProfile(profile.id)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition" :title="t('editProfile')">✏️</button>
@@ -264,35 +262,35 @@ HTML_CONTENT = r"""
                         <span class="text-sm font-bold text-blue-700 drop-shadow-sm">{{ activeProfile?.model || t('unsetModel') }}</span>
                     </div>
                 </div>
-                <button @click="isEditing = !isEditing" class="text-white bg-slate-800/90 hover:bg-slate-900 backdrop-blur-md px-6 py-2.5 rounded-full text-sm font-bold shadow-lg transition flex items-center gap-2">
+                <button @click="editActiveProfile" class="text-white bg-slate-800/90 hover:bg-slate-900 backdrop-blur-md px-6 py-2.5 rounded-full text-sm font-bold shadow-lg transition flex items-center gap-2">
                     {{ isEditing ? t('returnChat') : t('editCurrent') }}
                 </button>
             </div>
 
             <div class="flex-1 overflow-hidden relative">
-                <div v-if="isEditing && activeProfile" class="absolute inset-0 z-20 p-8 overflow-y-auto flex items-center justify-center">
+                <div v-if="isEditing && selectedProfile" class="absolute inset-0 z-20 p-8 overflow-y-auto flex items-center justify-center">
                     <div class="w-full max-w-3xl space-y-6 bg-white/70 backdrop-blur-3xl p-10 rounded-[2rem] shadow-2xl border border-white/80">
                         <h3 class="text-2xl font-extrabold border-b border-slate-300/60 pb-5 text-slate-800 flex items-center gap-3">
-                            <span class="text-4xl drop-shadow-md">{{ activeProfile.icon || '⚙️' }}</span> 
+                            <span class="text-4xl drop-shadow-md">{{ selectedProfile.icon || '⚙️' }}</span>
                             <span>{{ t('apiSettings') }}</span>
                         </h3>
                         
                         <div class="grid grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-extrabold text-slate-700 mb-2">{{ t('provider') }}</label>
-                                <select v-model="activeProfile.provider" @change="applyPreset" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-bold text-slate-800 transition cursor-pointer">
+                                <select v-model="selectedProfile.provider" @change="applyPreset" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 font-bold text-slate-800 transition cursor-pointer">
                                     <option v-for="(p, key) in presets" :key="key" :value="key">{{ p.icon }} {{ t(p.nameKey) }}</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-extrabold text-slate-700 mb-2">{{ t('configName') }}</label>
-                                <input v-model="activeProfile.name" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
+                                <input v-model="selectedProfile.name" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-sm font-extrabold text-slate-700 mb-2">{{ t('baseUrl') }}</label>
-                            <input v-model.trim="activeProfile.baseUrl" class="w-full bg-blue-50/80 backdrop-blur-md border-2 border-blue-300/80 hover:border-blue-400 shadow-sm rounded-xl p-3.5 font-mono text-sm text-blue-800 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition font-bold">
+                            <input v-model.trim="selectedProfile.baseUrl" class="w-full bg-blue-50/80 backdrop-blur-md border-2 border-blue-300/80 hover:border-blue-400 shadow-sm rounded-xl p-3.5 font-mono text-sm text-blue-800 outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition font-bold">
                         </div>
                         
                         <div>
@@ -302,13 +300,13 @@ HTML_CONTENT = r"""
                                     {{ showFullKey ? t('hideKey') : t('showFullKey') }}
                                 </button>
                             </label>
-                            <input v-model.trim="activeProfile.apiKey" :type="showFullKey ? 'text' : 'password'" placeholder="sk-..." class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
+                            <input v-model.trim="selectedProfile.apiKey" :type="showFullKey ? 'text' : 'password'" placeholder="sk-..." class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
                         </div>
                         
                         <div class="p-6 bg-slate-100/60 backdrop-blur-xl rounded-2xl border-2 border-slate-200 shadow-inner">
                             <label class="block text-sm font-extrabold text-slate-800 mb-3">{{ t('modelId') }}</label>
                             <div class="relative flex gap-3">
-                                <input v-model.trim="activeProfile.model" @focus="showModelDropdown = fetchedModels.length > 0" class="flex-1 bg-white/90 backdrop-blur-sm border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition text-slate-800 font-bold" :placeholder="t('modelDropdownNote')">
+                                <input v-model.trim="selectedProfile.model" @focus="showModelDropdown = fetchedModels.length > 0" class="flex-1 bg-white/90 backdrop-blur-sm border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition text-slate-800 font-bold" :placeholder="t('modelDropdownNote')">
                                 <button @click="fetchModels" :disabled="loadingModels" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg transition whitespace-nowrap flex items-center gap-2">
                                     {{ loadingModels ? '⏳...' : t('fetchModels') }}
                                 </button>
@@ -322,9 +320,12 @@ HTML_CONTENT = r"""
                             </div>
                         </div>
                         
-                        <div class="pt-4">
-                            <button @click="saveAndExit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-xl shadow-emerald-500/20 text-white py-4 rounded-2xl font-extrabold text-lg transition flex justify-center items-center gap-2">
-                                <span>💾</span> {{ t('saving') }}
+                        <div class="pt-4 grid grid-cols-2 gap-3">
+                            <button @click="enableSelectedProfile" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-emerald-400 disabled:to-teal-400 shadow-xl shadow-emerald-500/20 text-white py-4 rounded-2xl font-extrabold text-lg transition flex justify-center items-center gap-2" :disabled="selectedProfile.id === activeProfileId">
+                                <span>{{ selectedProfile.id === activeProfileId ? '🟢' : '✅' }}</span> {{ selectedProfile.id === activeProfileId ? t('alreadyRunning') : t('enableSelected') }}
+                            </button>
+                            <button @click="saveAndExit" class="bg-slate-800/90 hover:bg-slate-900 shadow-xl shadow-slate-500/20 text-white py-4 rounded-2xl font-extrabold text-lg transition flex justify-center items-center gap-2">
+                                <span>{{ selectedProfileDirty ? '💾' : '↩' }}</span> {{ selectedProfileDirty ? t('saveOnly') : t('returnOnly') }}
                             </button>
                         </div>
                     </div>
@@ -380,6 +381,11 @@ HTML_CONTENT = r"""
                         modelId: '部署模型 (Model ID)',
                         fetchModels: '📡 獲取清單',
                         saving: '儲存配置並返回',
+                        saveOnly: '儲存並返回',
+                        returnOnly: '返回',
+                        enableSelected: '啟用此配置',
+                        alreadyRunning: '正在運行',
+                        missingApiKey: '此配置缺少 API Key，請先填寫後再啟用。',
                         terminalUser: '👤 終端指令',
                         send: '發送 🚀',
                         inputPlaceholder: '輸入測試指令，按 Enter 發送...',
@@ -427,7 +433,7 @@ HTML_CONTENT = r"""
                         modelFetchOk: '成功獲取 {count} 個模型',
                         modelFetchEmpty: '獲取成功，但清單為空',
                         modelFetchFail: '獲取失敗，請檢查 API Key',
-                        saveAndEnable: '配置已儲存並啟用 ✨',
+                        saveAndEnable: '配置已儲存 ✨',
                         orderSaved: '✅ 節點順序已保存',
                         backupExportOk: '📤 配置已成功匯出檔案',
                         backupExportFail: '❌ 匯出失敗',
@@ -486,6 +492,11 @@ HTML_CONTENT = r"""
                         modelId: 'Model ID',
                         fetchModels: '📡 Fetch Models',
                         saving: 'Save and Return',
+                        saveOnly: 'Save & Return',
+                        returnOnly: 'Return',
+                        enableSelected: 'Enable This Profile',
+                        alreadyRunning: 'Running',
+                        missingApiKey: 'This profile is missing an API key. Add one before enabling it.',
                         terminalUser: '👤 User Input',
                         send: 'Send 🚀',
                         inputPlaceholder: 'Type a test prompt and press Enter...',
@@ -533,7 +544,7 @@ HTML_CONTENT = r"""
                         modelFetchOk: 'Fetched {count} models',
                         modelFetchEmpty: 'Fetched successfully, but the list is empty.',
                         modelFetchFail: 'Fetch failed. Check the API key.',
-                        saveAndEnable: 'Profile saved and enabled ✨',
+                        saveAndEnable: 'Profile saved ✨',
                         orderSaved: '✅ Profile order saved',
                         backupExportOk: '📤 Backup exported successfully.',
                         backupExportFail: '❌ Export failed',
@@ -628,6 +639,8 @@ HTML_CONTENT = r"""
 
                 const profiles = ref([]); 
                 const activeProfileId = ref(null); 
+                const selectedProfileId = ref(null);
+                const selectedProfileSnapshot = ref('');
                 const isEditing = ref(false);
                 const chatHistory = ref([]); 
                 const input = ref(''); 
@@ -642,6 +655,7 @@ HTML_CONTENT = r"""
                 const storageProfileKey = 'codex_profiles';
                 const storageActiveKey = 'codex_active_id';
                 const storageSettingsKey = 'codex_relay_settings';
+                const storageSessionSecretsKey = 'codex_session_api_keys';
 
                 const loadSettings = () => {
                     try {
@@ -676,7 +690,28 @@ HTML_CONTENT = r"""
                     return copy;
                 });
 
+                const readSessionSecrets = () => {
+                    try { return JSON.parse(sessionStorage.getItem(storageSessionSecretsKey) || '{}'); }
+                    catch (_) { return {}; }
+                };
+
+                const persistSessionSecrets = () => {
+                    const secrets = {};
+                    profiles.value.forEach((profile) => {
+                        if (profile.id && profile.apiKey) secrets[profile.id] = profile.apiKey;
+                    });
+                    sessionStorage.setItem(storageSessionSecretsKey, JSON.stringify(secrets));
+                };
+
+                const restoreSessionSecrets = () => {
+                    const secrets = readSessionSecrets();
+                    profiles.value.forEach((profile) => {
+                        if (!profile.apiKey && secrets[profile.id]) profile.apiKey = secrets[profile.id];
+                    });
+                };
+
                 const persistProfiles = () => {
+                    persistSessionSecrets();
                     localStorage.setItem(storageProfileKey, JSON.stringify(serializeProfiles(settings.value.rememberKeys)));
                     localStorage.setItem(storageActiveKey, activeProfileId.value || '');
                     persistSettings();
@@ -758,7 +793,12 @@ HTML_CONTENT = r"""
                                     if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
                                 });
                                 profiles.value = data.profiles;
+                                restoreSessionSecrets();
                                 activeProfileId.value = data.activeId || (data.profiles[0] ? data.profiles[0].id : null);
+                                if (!profiles.value.some(p => p.id === activeProfileId.value)) {
+                                    activeProfileId.value = profiles.value[0]?.id || null;
+                                }
+                                selectedProfileId.value = activeProfileId.value;
                                 showToast(t('backupImportOk'), 'success');
                                 sync();
                             } else { showToast(t('backupImportFormatFail'), 'error'); }
@@ -769,6 +809,22 @@ HTML_CONTENT = r"""
                 };
 
                 const activeProfile = computed(() => profiles.value.find(p => p.id === activeProfileId.value));
+                const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedProfileId.value) || activeProfile.value);
+                const profileSnapshot = (profile) => JSON.stringify({
+                    name: profile?.name || '',
+                    provider: profile?.provider || '',
+                    baseUrl: profile?.baseUrl || '',
+                    apiKey: profile?.apiKey || '',
+                    model: profile?.model || '',
+                    icon: profile?.icon || ''
+                });
+                const captureSelectedProfileSnapshot = () => {
+                    selectedProfileSnapshot.value = selectedProfile.value ? profileSnapshot(selectedProfile.value) : '';
+                };
+                const selectedProfileDirty = computed(() => {
+                    if (!selectedProfile.value) return false;
+                    return profileSnapshot(selectedProfile.value) !== selectedProfileSnapshot.value;
+                });
                 
                 onMounted(() => {
                     const saved = localStorage.getItem(storageProfileKey);
@@ -778,7 +834,12 @@ HTML_CONTENT = r"""
                             if(!p.provider) p.provider = 'custom';
                             if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
                         });
-                        activeProfileId.value = localStorage.getItem(storageActiveKey); 
+                        restoreSessionSecrets();
+                        activeProfileId.value = localStorage.getItem(storageActiveKey);
+                        if (!profiles.value.some(p => p.id === activeProfileId.value)) {
+                            activeProfileId.value = profiles.value[0]?.id || null;
+                        }
+                        selectedProfileId.value = activeProfileId.value;
                     } else { 
                         createNewProfile(); 
                     }
@@ -815,19 +876,44 @@ HTML_CONTENT = r"""
                 const createNewProfile = () => {
                     const id = Date.now().toString();
                     profiles.value.unshift({ id, name: t('createProfile'), provider: 'custom', baseUrl: '', apiKey: '', model: '', icon: '⚙️' });
-                    activeProfileId.value = id; 
+                    if (!activeProfileId.value) activeProfileId.value = id;
+                    selectedProfileId.value = id;
+                    captureSelectedProfileSnapshot();
                     isEditing.value = true;
                     showToast(t('profileCreated'));
                 };
 
-                const selectProfile = (id) => { activeProfileId.value = id; };
+                const selectProfile = (id) => {
+                    selectedProfileId.value = id;
+                    captureSelectedProfileSnapshot();
+                    isEditing.value = true;
+                };
 
                 const enableProfile = (id) => {
+                    const target = profiles.value.find(p => p.id === id);
+                    if (requiresApiKey(target) && !target?.apiKey?.trim()) {
+                        showToast(t('missingApiKey'), 'error');
+                        selectedProfileId.value = id;
+                        isEditing.value = true;
+                        return;
+                    }
                     activeProfileId.value = id;
+                    selectedProfileId.value = id;
+                    captureSelectedProfileSnapshot();
                     showToast(t('activeProfile', { name: activeProfile.value.name }));
                 };
 
-                const editProfile = (id) => { activeProfileId.value = id; isEditing.value = true; };
+                const enableSelectedProfile = () => {
+                    if (selectedProfile.value) enableProfile(selectedProfile.value.id);
+                };
+
+                const editProfile = (id) => { selectProfile(id); };
+
+                const editActiveProfile = () => {
+                    if (activeProfile.value) selectedProfileId.value = activeProfile.value.id;
+                    captureSelectedProfileSnapshot();
+                    isEditing.value = !isEditing.value;
+                };
 
                 const testProfile = async (p) => {
                     showToast(t('testConnecting'), 'success');
@@ -839,29 +925,36 @@ HTML_CONTENT = r"""
                     } catch(e) { showToast(t('networkError'), 'error'); }
                 };
 
+                const requiresApiKey = (profile) => {
+                    const url = (profile?.baseUrl || '').toLowerCase();
+                    return !url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('host.docker.internal');
+                };
+
                 const applyPreset = () => {
-                    const p = presets[activeProfile.value.provider];
+                    if (!selectedProfile.value) return;
+                    const p = presets[selectedProfile.value.provider];
                     if(p) { 
-                        activeProfile.value.baseUrl = p.url; 
-                        activeProfile.value.icon = p.icon;
-                        if(p.model) activeProfile.value.model = p.model; 
+                        selectedProfile.value.baseUrl = p.url;
+                        selectedProfile.value.icon = p.icon;
+                        if(p.model) selectedProfile.value.model = p.model;
                         
-                        const currentName = activeProfile.value.name || '';
+                        const currentName = selectedProfile.value.name || '';
                         const defaultNames = [t('createProfile'), '未命名節點', '新配置', 'Untitled Node', 'Untitled'];
                         const isDefaultName = currentName === '' || defaultNames.some(name => currentName === name) || currentName.includes('節點') || currentName.toLowerCase().includes('node');
                         const isAnyPresetName = Object.values(presets).some(preset => currentName === t(preset.nameKey));
 
                         if (isDefaultName || isAnyPresetName) {
-                            activeProfile.value.name = t(p.nameKey);
+                            selectedProfile.value.name = t(p.nameKey);
                         }
                     }
                 };
 
                 const fetchModels = async () => {
+                    if (!selectedProfile.value) return;
                     loadingModels.value = true;
                     try {
-                        const cleanKey = activeProfile.value.apiKey ? activeProfile.value.apiKey.trim() : '';
-                        const res = await fetch('/relay/v1/models', { headers: { 'X-Upstream-Base': activeProfile.value.baseUrl.trim(), 'Authorization': `Bearer ${cleanKey}` }});
+                        const cleanKey = selectedProfile.value.apiKey ? selectedProfile.value.apiKey.trim() : '';
+                        const res = await fetch('/relay/v1/models', { headers: { 'X-Upstream-Base': selectedProfile.value.baseUrl.trim(), 'Authorization': `Bearer ${cleanKey}` }});
                         const d = await res.json(); 
                         let rawModels = d.data || d.models || d;
                         fetchedModels.value = rawModels.sort((a, b) => {
@@ -884,13 +977,23 @@ HTML_CONTENT = r"""
                 };
 
                 const selectModel = (modelId) => {
-                    activeProfile.value.model = modelId;
+                    selectedProfile.value.model = modelId;
                     showModelDropdown.value = false;
                 };
 
                 const saveAndExit = () => {
                     isEditing.value = false;
-                    showToast(t('saveAndEnable'));
+                    if (selectedProfileDirty.value) {
+                        captureSelectedProfileSnapshot();
+                        showToast(t('saveAndEnable'));
+                    }
+                };
+
+                const deleteProfile = (id) => {
+                    profiles.value = profiles.value.filter(p => p.id !== id);
+                    if (activeProfileId.value === id) activeProfileId.value = profiles.value[0]?.id || null;
+                    if (selectedProfileId.value === id) selectedProfileId.value = activeProfileId.value || profiles.value[0]?.id || null;
+                    if (!profiles.value.length) createNewProfile();
                 };
 
                 const send = async () => {
@@ -923,14 +1026,14 @@ HTML_CONTENT = r"""
 
                 return { 
                     t, settings, resolvedLang,
-                    presets, profiles, activeProfileId, activeProfile, isEditing, 
+                    presets, profiles, activeProfileId, selectedProfileId, activeProfile, selectedProfile, selectedProfileDirty, isEditing,
                     chatHistory, input, gen, fetchedModels, loadingModels, syncStatus, 
                     showModelDropdown, toast, showToast, fileInput, sortedProfiles,
                     copyConfig, exportConfig, importConfig, showFullKey,
                     draggedIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDragEnd, onDrop,
-                    createNewProfile, selectProfile, enableProfile, editProfile, testProfile,
-                    deleteProfile: (id) => { profiles.value = profiles.value.filter(p => p.id !== id); if(activeProfileId.value === id) activeProfileId.value = profiles.value[0]?.id; }, 
-                    applyPreset, fetchModels, selectModel, saveAndExit, send, 
+                    createNewProfile, selectProfile, enableProfile, enableSelectedProfile, editProfile, editActiveProfile, testProfile,
+                    deleteProfile,
+                    applyPreset, fetchModels, selectModel, saveAndExit, send,
                     renderMd: (t) => marked.parse(t) 
                 };
             }
