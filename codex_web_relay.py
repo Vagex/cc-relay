@@ -91,9 +91,9 @@ HTML_CONTENT = r"""
         .config-portal {
             display: none;
             position: absolute;
-            bottom: 85px;
-            left: 20px;
-            right: 20px;
+            bottom: calc(100% + 10px);
+            left: 0;
+            right: 0;
             background: #0f172a;
             color: #38bdf8;
             padding: 18px;
@@ -113,7 +113,7 @@ HTML_CONTENT = r"""
             display: block; 
             margin-top: 10px; 
         }
-        .status-bar-container:hover .config-portal { display: block; }
+        .config-hover-target:hover .config-portal { display: block; }
         
         /* 自定義磨砂玻璃漸層背景 */
         body {
@@ -195,17 +195,6 @@ HTML_CONTENT = r"""
             
             <div class="p-4 border-t border-white/50 bg-white/20 backdrop-blur-xl flex flex-col gap-3 relative status-bar-container">
                 
-                <div class="config-portal" @click="copyConfig" :title="t('copyConfigHint')">
-                    <span class="text-white font-bold border-b border-blue-500/30 mb-2 block pb-1 text-[10px] uppercase">{{ t('copyConfigTitle') }}</span>
-                    model = "relay-auto"<br><br>
-                    model_provider = "local-relay"<br><br>
-                    [model_providers.local-relay]<br>
-                    name = "Local Relay"<br>
-                    base_url = "http://127.0.0.1:4446/relay/v1"<br>
-                    wire_api = "responses"<br>
-                    <div class="mt-2 pt-2 border-t border-white/10 text-center text-[10px] text-slate-400">{{ t('copyConfigHint') }}</div>
-                </div>
-
                 <div class="flex gap-2">
                     <button @click="exportConfig" class="flex-1 bg-white/60 hover:bg-white border border-slate-200 text-slate-700 py-2 rounded-xl text-sm font-bold shadow-sm transition flex justify-center items-center gap-1.5">
                         {{ t('exportConfig') }}
@@ -216,12 +205,24 @@ HTML_CONTENT = r"""
                     <input type="file" ref="fileInput" @change="importConfig" accept=".json" class="hidden">
                 </div>
                 
-                <div class="py-2 px-3 text-xs text-center rounded-xl font-medium flex items-center justify-center gap-2 shadow-inner border border-white/50 cursor-help" :class="syncStatus === 'Synced' ? 'text-emerald-700 bg-emerald-100/50' : 'text-slate-500 bg-slate-200/50'">
-                    <span class="relative flex h-2 w-2" v-if="syncStatus === 'Synced'">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    {{ syncStatus === 'Synced' ? t('synced') : t('waitingSync') }}
+                <div class="relative config-hover-target">
+                    <div class="config-portal" @click="copyConfig" :title="t('copyConfigHint')">
+                        <span class="text-white font-bold border-b border-blue-500/30 mb-2 block pb-1 text-[10px] uppercase">{{ t('copyConfigTitle') }}</span>
+                        model = "relay-auto"<br><br>
+                        model_provider = "local-relay"<br><br>
+                        [model_providers.local-relay]<br>
+                        name = "Local Relay"<br>
+                        base_url = "http://127.0.0.1:4446/relay/v1"<br>
+                        wire_api = "responses"<br>
+                        <div class="mt-2 pt-2 border-t border-white/10 text-center text-[10px] text-slate-400">{{ t('copyConfigHint') }}</div>
+                    </div>
+                    <div class="py-2 px-3 text-xs text-center rounded-xl font-medium flex items-center justify-center gap-2 shadow-inner border border-white/50 cursor-help" :class="syncStatus === 'Synced' ? 'text-emerald-700 bg-emerald-100/50' : 'text-slate-500 bg-slate-200/50'">
+                        <span class="relative flex h-2 w-2" v-if="syncStatus === 'Synced'">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        {{ syncStatus === 'Synced' ? t('synced') : t('waitingSync') }}
+                    </div>
                 </div>
 
                 <div class="rounded-2xl border border-white/60 bg-white/35 backdrop-blur-xl p-3 space-y-2 shadow-inner">
