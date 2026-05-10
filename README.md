@@ -4,6 +4,8 @@ Codex Web Relay is a local FastAPI relay and web console for routing Codex-style
 
 The project is intentionally compact: the backend, API adapter, and Vue-based control panel all live in `codex_web_relay.py`, with Docker files included for Windows Docker Desktop and Linux/VPS deployment.
 
+The web console now ships with local copies of its frontend assets, so it does not depend on external CDNs at runtime. The interface is bilingual, with Traditional Chinese and English available from the settings panel.
+
 ## What It Does
 
 - Provides a browser control panel at `http://127.0.0.1:4446`.
@@ -15,6 +17,7 @@ The project is intentionally compact: the backend, API adapter, and Vue-based co
 - Preserves streaming output through Server-Sent Events.
 - Adapts function/tool call shapes for OpenAI-compatible chat-completions providers.
 - Stores active provider state in server memory and profile data in the browser's local storage.
+- Lets users decide whether API keys are remembered locally, included in exported backups, and whether upstream TLS is verified.
 
 ## Project Layout
 
@@ -23,6 +26,7 @@ The project is intentionally compact: the backend, API adapter, and Vue-based co
 ├── codex_web_relay.py                  # FastAPI server, Vue control panel, relay logic
 ├── Dockerfile                          # Python 3.11 container image
 ├── docker-compose.yml                  # Windows Docker Desktop friendly compose file
+├── vendor/                              # Local frontend assets for Vue, Tailwind, and marked
 └── Codex_Web_Relay_Deployment_Guide.pdf # Original deployment guide
 ```
 
