@@ -8,6 +8,7 @@ import traceback
 import sys
 import os
 import socket
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +21,8 @@ for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
 
 RELAY_PORT = int(os.environ.get("CODEX_RELAY_PORT", "4446"))
+BASE_DIR = Path(__file__).resolve().parent
+VENDOR_DIR = BASE_DIR / "vendor"
 
 def assert_port_available(port: int) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -944,7 +947,7 @@ HTML_CONTENT = r"""
 # 2. 後端核心邏輯 (FastAPI & HTTPX)
 # ==========================================
 app = FastAPI()
-app.mount("/vendor", StaticFiles(directory="vendor"), name="vendor")
+app.mount("/vendor", StaticFiles(directory=str(VENDOR_DIR)), name="vendor")
 
 class SyncPayload(BaseModel):
     base_url: str
