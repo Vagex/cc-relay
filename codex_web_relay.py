@@ -173,7 +173,8 @@ HTML_CONTENT = r"""
 
                     <div class="px-3 py-2.5 pl-7 flex items-center gap-2 min-w-0">
                         <div class="text-2xl leading-none drop-shadow-sm flex-shrink-0">{{ profile.icon || '⚙️' }}</div>
-                        <div :title="profile.name" class="font-bold text-[14px] text-slate-800 truncate min-w-0 flex-1">{{ profile.name }}</div>
+                        <div :title="profile.name" class="font-bold text-[14px] truncate min-w-0 flex-1"
+                             :class="activeProfileId === profile.id ? 'text-emerald-900 font-extrabold' : selectedProfileId === profile.id ? 'text-blue-800' : 'text-slate-800'">{{ profile.name }}</div>
                         <div class="flex gap-1 rounded-full p-0.5 border flex-shrink-0" :class="activeProfileId === profile.id ? 'bg-white/40 border-blue-300/30' : 'bg-white/50 border-white/60'">
                             <button @click.stop="testProfile(profile)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition" :title="t('testConnection')">⚡</button>
                             <button @click.stop="editProfile(profile.id)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-full transition" :title="t('editProfile')">✏️</button>
