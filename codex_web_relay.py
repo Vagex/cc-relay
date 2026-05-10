@@ -5,10 +5,25 @@ import logging
 import uuid
 import hashlib
 import traceback
+import sys
+import os
+import socket
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+# Windows cmd.exe commonly starts Python with a GBK console encoding, which
+# cannot print the emoji-rich startup/status messages used by this script.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
+RELAY_PORT = int(os.environ.get("CODEX_RELAY_PORT", "4446"))
+
+def assert_port_available(port: int) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("0.0.0.0", port))
 
 # ==========================================
 # 0. 系統日誌設定 & 全域秘密記憶體
@@ -1293,25 +1308,25 @@ async def main_proxy(request: Request):
 
 if __name__ == "__main__":
     try:
+        assert_port_available(RELAY_PORT)
         print("=====================================================")
         print("🚀 Codex Web Relay (魔法玻璃旗艦版) 啟動成功！")
-        print("👉 請在瀏覽器開啟: http://127.0.0.1:4446")
+        print(f"👉 請在瀏覽器開啟: http://127.0.0.1:{RELAY_PORT}")
         print("=====================================================")
-        uvicorn.run(app, host="0.0.0.0", port=4446, log_level="warning")
+        uvicorn.run(app, host="0.0.0.0", port=RELAY_PORT, log_level="warning")
     except Exception as e:
         print("\n" + "!"*60)
         print("❌ 發生致命錯誤，導致伺服器崩潰！")
         print("!"*60)
         print(f"錯誤訊息: {str(e)}")
         
-        if "10048" in str(e) or "address already in use" in str(e).lower():
-            print("\n💡 診斷結果：【4446 通訊埠已被佔用】")
-            print("這代表你之前運行的 Python 腳本雖然關閉了視窗，但程式還在系統背景偷跑！")
+        if "10048" in str(e) or "10013" in str(e) or "address already in use" in str(e).lower() or "access permissions" in str(e).lower():
+            print(f"\n💡 診斷結果：【{RELAY_PORT} 通訊埠無法使用】")
+            print("這通常代表 Docker、另一個 relay、或系統保留端口正在佔用它。")
             print("👉 解決方法：")
-            print("   1. 打開 Windows 工作管理員 (快捷鍵：Ctrl + Shift + Esc)")
-            print("   2. 在「詳細資料」或「處理程序」中找到所有的 `python.exe`")
-            print("   3. 右鍵點擊它們並選擇【結束任務】")
-            print("   4. 再次點擊本腳本重新執行即可。")
+            print("   1. 如果你正在用 Docker 版本，請直接打開 http://127.0.0.1:4446，不需要再跑 Python 腳本。")
+            print("   2. 如果想跑 Python 版本，請先停止佔用 4446 的 Docker 容器。")
+            print("   3. 或改用其他端口啟動，例如：set CODEX_RELAY_PORT=4447 && python codex_web_relay.py")
         else:
             print("\n🔍 詳細追蹤日誌 (Traceback):")
             traceback.print_exc()
