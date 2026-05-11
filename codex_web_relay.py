@@ -591,7 +591,7 @@ HTML_CONTENT = r"""
 
                 const defaultSettings = {
                     language: 'auto',
-                    rememberKeys: false,
+                    rememberKeys: true,
                     exportKeys: false,
                     verifyUpstreamTLS: true
                 };
@@ -665,7 +665,7 @@ HTML_CONTENT = r"""
                         const parsed = JSON.parse(raw);
                         return {
                             language: normalizeLang(parsed.language ?? defaultSettings.language),
-                            rememberKeys: Boolean(parsed.rememberKeys),
+                            rememberKeys: parsed.rememberKeys === undefined ? defaultSettings.rememberKeys : Boolean(parsed.rememberKeys),
                             exportKeys: Boolean(parsed.exportKeys),
                             verifyUpstreamTLS: parsed.verifyUpstreamTLS !== false
                         };
@@ -709,6 +709,12 @@ HTML_CONTENT = r"""
                     profiles.value.forEach((profile) => {
                         if (!profile.apiKey && secrets[profile.id]) profile.apiKey = secrets[profile.id];
                     });
+                };
+
+                const preserveStoredKeysByDefault = (hasPersistedKeys) => {
+                    if (hasPersistedKeys) {
+                        settings.value.rememberKeys = true;
+                    }
                 };
 
                 const persistProfiles = () => {
@@ -794,7 +800,9 @@ HTML_CONTENT = r"""
                                     if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
                                 });
                                 profiles.value = data.profiles;
+                                const importedProfilesHaveKeys = profiles.value.some(profile => profile.apiKey);
                                 restoreSessionSecrets();
+                                preserveStoredKeysByDefault(importedProfilesHaveKeys);
                                 activeProfileId.value = data.activeId || (data.profiles[0] ? data.profiles[0].id : null);
                                 if (!profiles.value.some(p => p.id === activeProfileId.value)) {
                                     activeProfileId.value = profiles.value[0]?.id || null;
@@ -835,7 +843,9 @@ HTML_CONTENT = r"""
                             if(!p.provider) p.provider = 'custom';
                             if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
                         });
+                        const storedProfilesHaveKeys = profiles.value.some(profile => profile.apiKey);
                         restoreSessionSecrets();
+                        preserveStoredKeysByDefault(storedProfilesHaveKeys);
                         activeProfileId.value = localStorage.getItem(storageActiveKey);
                         if (!profiles.value.some(p => p.id === activeProfileId.value)) {
                             activeProfileId.value = profiles.value[0]?.id || null;
