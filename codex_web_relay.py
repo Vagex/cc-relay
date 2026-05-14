@@ -869,6 +869,19 @@ HTML_CONTENT = r"""
 
                 const activeProfile = computed(() => profiles.value.find(p => p.id === activeProfileId.value));
                 const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedProfileId.value) || activeProfile.value);
+                const activeSyncPayload = computed(() => {
+                    const profile = activeProfile.value;
+                    if (!profile) return '';
+                    return JSON.stringify({
+                        id: activeProfileId.value || '',
+                        baseUrl: profile.baseUrl || '',
+                        apiKey: profile.apiKey || '',
+                        model: profile.model || '',
+                        organization: profile.organization || '',
+                        project: profile.project || '',
+                        verifyUpstreamTLS: settings.value.verifyUpstreamTLS
+                    });
+                });
                 const profileSnapshot = (profile) => JSON.stringify({
                     name: profile?.name || '',
                     provider: profile?.provider || '',
@@ -915,8 +928,11 @@ HTML_CONTENT = r"""
 
                 watch([profiles, activeProfileId, settings], () => {
                     persistProfiles();
-                    sync();
                 }, { deep: true });
+
+                watch(activeSyncPayload, () => {
+                    sync();
+                });
 
                 watch(resolvedLang, () => {
                     document.documentElement.lang = resolvedLang.value;
