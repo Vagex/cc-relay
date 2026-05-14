@@ -26,6 +26,11 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("const activeSyncPayload = computed", self.source)
         self.assertRegex(self.source, r"watch\(activeSyncPayload,\s*\(\) => \{\s*sync\(\);")
 
+    def test_local_ollama_hosts_do_not_require_api_keys(self):
+        self.assertIn("'127.0.0.1'", self.source)
+        self.assertIn("'host.docker.internal'", self.source)
+        self.assertIn("new URL(profile?.baseUrl || '').hostname", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

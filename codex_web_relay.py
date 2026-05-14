@@ -488,8 +488,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI (Grok)',
                         presetGithub: 'GitHub Models',
-                        presetOllama: '本地 Ollama',
-                        presetOllamaDocker: 'Ollama (Docker 桌面版)',
+                        presetOllama: '本機 Relay → 本機 Ollama',
+                        presetOllamaDocker: 'Docker Relay → Windows Ollama',
                         presetLmstudio: '本地 LM Studio',
                         presetVllm: '本地 vLLM',
                         openaiOrganization: 'OpenAI Organization（選填）',
@@ -605,8 +605,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI Grok',
                         presetGithub: 'GitHub Models',
-                        presetOllama: 'Local Ollama',
-                        presetOllamaDocker: 'Ollama Docker Desktop',
+                        presetOllama: 'Local Relay → Local Ollama',
+                        presetOllamaDocker: 'Docker Relay → Windows Ollama',
                         presetLmstudio: 'Local LM Studio',
                         presetVllm: 'Local vLLM',
                         openaiOrganization: 'OpenAI Organization (optional)',
@@ -1011,8 +1011,12 @@ HTML_CONTENT = r"""
                 };
 
                 const requiresApiKey = (profile) => {
-                    const url = (profile?.baseUrl || '').toLowerCase();
-                    return !url.includes('localhost') && !url.includes('127.0.0.1') && !url.includes('host.docker.internal');
+                    try {
+                        const host = new URL(profile?.baseUrl || '').hostname.toLowerCase();
+                        return !['localhost', '127.0.0.1', '::1', 'host.docker.internal'].includes(host);
+                    } catch (_) {
+                        return true;
+                    }
                 };
 
                 const applyPreset = () => {

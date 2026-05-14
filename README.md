@@ -131,8 +131,8 @@ For OpenAI official API:
 
 For local providers:
 
-- Ollama on the same host: `http://127.0.0.1:11434/v1`
-- Ollama from Docker Desktop on Windows: `http://host.docker.internal:11434/v1`
+- `Local Relay -> Local Ollama`: `http://127.0.0.1:11434/v1`, for running the relay directly on the same machine as Ollama.
+- `Docker Relay -> Windows Ollama`: `http://host.docker.internal:11434/v1`, for running the relay in Docker Desktop while Ollama runs on the Windows host.
 - LM Studio: `http://localhost:1234/v1`
 - vLLM: `http://localhost:8000/v1`
 
