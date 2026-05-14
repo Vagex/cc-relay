@@ -10,7 +10,7 @@ import os
 import socket
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -1044,6 +1044,8 @@ HTML_CONTENT = r"""
                         const res = await fetch('/relay/v1/models', { headers: upstreamHeaders(selectedProfile.value, cleanKey) });
                         const d = await res.json(); 
                         let rawModels = d.data || d.models || d;
+                        if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+                        if (!Array.isArray(rawModels)) rawModels = [];
                         fetchedModels.value = rawModels.sort((a, b) => {
                             const nameA = (a.id || a).toLowerCase();
                             const nameB = (b.id || b).toLowerCase();
@@ -1197,11 +1199,18 @@ async def proxy_models(request: Request):
     organization = request.headers.get("OpenAI-Organization", "")
     project = request.headers.get("OpenAI-Project", "")
     verify_ssl = ACTIVE_PROFILE_STATE.get("verify_ssl", True)
+    if not base_url:
+        return JSONResponse({"data": [], "error": "Missing X-Upstream-Base header"}, status_code=400)
     async with httpx.AsyncClient(timeout=15.0, verify=verify_ssl) as client:
         try:
             res = await client.get(f"{base_url}/models", headers=build_upstream_headers(auth, organization, project))
-            return res.json()
-        except: return {"data": []}
+            try:
+                payload = res.json()
+            except json.JSONDecodeError:
+                payload = {"data": [], "error": res.text}
+            return JSONResponse(payload, status_code=res.status_code)
+        except httpx.HTTPError as exc:
+            return JSONResponse({"data": [], "error": str(exc)}, status_code=502)
 
 async def stream_generator(upstream_url: str, headers: dict, payload: dict, is_codex_app: bool):
     res_id = f"res_{uuid.uuid4().hex[:8]}"
