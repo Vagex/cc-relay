@@ -42,6 +42,8 @@ ACTIVE_PROFILE_STATE = {
     "base_url": "http://127.0.0.1:11434/v1",
     "api_key": "ollama",
     "model": "gemma4:26b",
+    "organization": "",
+    "project": "",
     "verify_ssl": True
 }
 
@@ -303,6 +305,20 @@ HTML_CONTENT = r"""
                             </label>
                             <input v-model.trim="selectedProfile.apiKey" :type="showFullKey ? 'text' : 'password'" placeholder="sk-..." class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
                         </div>
+
+                        <div v-if="selectedProfile.provider === 'openai'" class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-extrabold text-slate-700 mb-2">{{ t('openaiOrganization') }}</label>
+                                <input v-model.trim="selectedProfile.organization" :placeholder="t('openaiOrganizationPlaceholder')" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-extrabold text-slate-700 mb-2">{{ t('openaiProject') }}</label>
+                                <input v-model.trim="selectedProfile.project" :placeholder="t('openaiProjectPlaceholder')" class="w-full bg-white/90 backdrop-blur-md border-2 border-slate-300/60 hover:border-slate-400 shadow-sm rounded-xl p-3.5 font-mono text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition font-bold text-slate-800">
+                            </div>
+                            <div class="col-span-2 rounded-2xl bg-blue-50/80 border border-blue-200/70 px-4 py-3 text-xs leading-5 text-blue-800 font-semibold">
+                                {{ t('openaiApiNote') }}
+                            </div>
+                        </div>
                         
                         <div class="p-6 bg-slate-100/60 backdrop-blur-xl rounded-2xl border-2 border-slate-200 shadow-inner">
                             <label class="block text-sm font-extrabold text-slate-800 mb-3">{{ t('modelId') }}</label>
@@ -457,6 +473,7 @@ HTML_CONTENT = r"""
                         localLmStudio: '本地 LM Studio',
                         localVllm: '本地 vLLM',
                         presetCustom: '自定義節點',
+                        presetOpenai: 'OpenAI API',
                         presetDeepSeek: 'DeepSeek 官方',
                         presetSiliconFlow: '硅基流动 (SiliconFlow)',
                         presetOpenRouter: 'OpenRouter',
@@ -474,7 +491,12 @@ HTML_CONTENT = r"""
                         presetOllama: '本地 Ollama',
                         presetOllamaDocker: 'Ollama (Docker 桌面版)',
                         presetLmstudio: '本地 LM Studio',
-                        presetVllm: '本地 vLLM'
+                        presetVllm: '本地 vLLM',
+                        openaiOrganization: 'OpenAI Organization（選填）',
+                        openaiOrganizationPlaceholder: 'org_...',
+                        openaiProject: 'OpenAI Project（選填）',
+                        openaiProjectPlaceholder: 'proj_...',
+                        openaiApiNote: 'OpenAI 官方 API 使用 API Key 驗證；Account 登入保留給 Codex Desktop 原生流程，本 relay 不代理帳號登入態。'
                     },
                     en: {
                         appTitle: 'Codex Relay Web Console',
@@ -568,6 +590,7 @@ HTML_CONTENT = r"""
                         localLmStudio: 'Local LM Studio',
                         localVllm: 'Local vLLM',
                         presetCustom: 'Custom',
+                        presetOpenai: 'OpenAI API',
                         presetDeepSeek: 'DeepSeek',
                         presetSiliconFlow: 'SiliconFlow',
                         presetOpenRouter: 'OpenRouter',
@@ -585,7 +608,12 @@ HTML_CONTENT = r"""
                         presetOllama: 'Local Ollama',
                         presetOllamaDocker: 'Ollama Docker Desktop',
                         presetLmstudio: 'Local LM Studio',
-                        presetVllm: 'Local vLLM'
+                        presetVllm: 'Local vLLM',
+                        openaiOrganization: 'OpenAI Organization (optional)',
+                        openaiOrganizationPlaceholder: 'org_...',
+                        openaiProject: 'OpenAI Project (optional)',
+                        openaiProjectPlaceholder: 'proj_...',
+                        openaiApiNote: 'OpenAI official API uses API keys. Account login stays with Codex Desktop and is not proxied here.'
                     }
                 };
 
@@ -618,6 +646,7 @@ HTML_CONTENT = r"""
 
                 const presets = {
                     custom: { nameKey: 'presetCustom', url: '', model: '', icon: '⚙️' },
+                    openai: { nameKey: 'presetOpenai', url: 'https://api.openai.com/v1', model: 'gpt-4.1', icon: 'AI' },
                     deepseek: { nameKey: 'presetDeepSeek', url: 'https://api.deepseek.com/v1', model: 'deepseek-chat', icon: '🐳' },
                     siliconflow: { nameKey: 'presetSiliconFlow', url: 'https://api.siliconflow.cn/v1', model: 'deepseek-ai/DeepSeek-V3', icon: '🌊' },
                     openrouter: { nameKey: 'presetOpenRouter', url: 'https://openrouter.ai/api/v1', model: 'anthropic/claude-3-haiku', icon: '🌌' },
@@ -717,6 +746,28 @@ HTML_CONTENT = r"""
                     }
                 };
 
+                const normalizeProfile = (profile) => {
+                    if(!profile.provider) profile.provider = 'custom';
+                    if(!profile.icon) profile.icon = presets[profile.provider]?.icon || '⚙️';
+                    if(profile.organization === undefined) profile.organization = '';
+                    if(profile.project === undefined) profile.project = '';
+                    return profile;
+                };
+
+                const upstreamHeaders = (profile, cleanKey) => {
+                    const headers = {
+                        'X-Upstream-Base': (profile?.baseUrl || '').trim(),
+                        'Authorization': `Bearer ${cleanKey || ''}`
+                    };
+                    if (profile?.provider === 'openai') {
+                        const organization = (profile.organization || '').trim();
+                        const project = (profile.project || '').trim();
+                        if (organization) headers['OpenAI-Organization'] = organization;
+                        if (project) headers['OpenAI-Project'] = project;
+                    }
+                    return headers;
+                };
+
                 const persistProfiles = () => {
                     persistSessionSecrets();
                     localStorage.setItem(storageProfileKey, JSON.stringify(serializeProfiles(settings.value.rememberKeys)));
@@ -796,8 +847,7 @@ HTML_CONTENT = r"""
                             const data = JSON.parse(e.target.result);
                             if (data.profiles && Array.isArray(data.profiles)) {
                                 data.profiles.forEach(p => {
-                                    if(!p.provider) p.provider = 'custom';
-                                    if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
+                                    normalizeProfile(p);
                                 });
                                 profiles.value = data.profiles;
                                 const importedProfilesHaveKeys = profiles.value.some(profile => profile.apiKey);
@@ -824,6 +874,8 @@ HTML_CONTENT = r"""
                     provider: profile?.provider || '',
                     baseUrl: profile?.baseUrl || '',
                     apiKey: profile?.apiKey || '',
+                    organization: profile?.organization || '',
+                    project: profile?.project || '',
                     model: profile?.model || '',
                     icon: profile?.icon || ''
                 });
@@ -840,8 +892,7 @@ HTML_CONTENT = r"""
                     if (saved) { 
                         profiles.value = JSON.parse(saved); 
                         profiles.value.forEach(p => {
-                            if(!p.provider) p.provider = 'custom';
-                            if(!p.icon) p.icon = presets[p.provider]?.icon || '⚙️';
+                            normalizeProfile(p);
                         });
                         const storedProfilesHaveKeys = profiles.value.some(profile => profile.apiKey);
                         restoreSessionSecrets();
@@ -878,7 +929,14 @@ HTML_CONTENT = r"""
                         const cleanKey = activeProfile.value.apiKey ? activeProfile.value.apiKey.trim() : '';
                         await fetch('/relay/v1/internal/sync', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ base_url: activeProfile.value.baseUrl.trim(), api_key: cleanKey, model: activeProfile.value.model.trim(), verify_ssl: settings.value.verifyUpstreamTLS })
+                            body: JSON.stringify({
+                                base_url: activeProfile.value.baseUrl.trim(),
+                                api_key: cleanKey,
+                                model: activeProfile.value.model.trim(),
+                                organization: (activeProfile.value.organization || '').trim(),
+                                project: (activeProfile.value.project || '').trim(),
+                                verify_ssl: settings.value.verifyUpstreamTLS
+                            })
                         });
                         syncStatus.value = 'Synced';
                     } catch(e) { syncStatus.value = 'Error'; }
@@ -886,7 +944,7 @@ HTML_CONTENT = r"""
 
                 const createNewProfile = () => {
                     const id = Date.now().toString();
-                    profiles.value.unshift({ id, name: t('createProfile'), provider: 'custom', baseUrl: '', apiKey: '', model: '', icon: '⚙️' });
+                    profiles.value.unshift({ id, name: t('createProfile'), provider: 'custom', baseUrl: '', apiKey: '', organization: '', project: '', model: '', icon: '⚙️' });
                     if (!activeProfileId.value) activeProfileId.value = id;
                     selectedProfileId.value = id;
                     captureSelectedProfileSnapshot();
@@ -930,7 +988,7 @@ HTML_CONTENT = r"""
                     showToast(t('testConnecting'), 'success');
                     try {
                         const cleanKey = p.apiKey ? p.apiKey.trim() : '';
-                        const res = await fetch('/relay/v1/models', { headers: { 'X-Upstream-Base': p.baseUrl.trim(), 'Authorization': `Bearer ${cleanKey}` }});
+                        const res = await fetch('/relay/v1/models', { headers: upstreamHeaders(p, cleanKey) });
                         if(res.ok) showToast(t('testOk', { name: p.name }), 'success');
                         else showToast(t('testFail', { status: res.status }), 'error');
                     } catch(e) { showToast(t('networkError'), 'error'); }
@@ -948,6 +1006,8 @@ HTML_CONTENT = r"""
                         selectedProfile.value.baseUrl = p.url;
                         selectedProfile.value.icon = p.icon;
                         if(p.model) selectedProfile.value.model = p.model;
+                        if(selectedProfile.value.organization === undefined) selectedProfile.value.organization = '';
+                        if(selectedProfile.value.project === undefined) selectedProfile.value.project = '';
                         
                         const currentName = selectedProfile.value.name || '';
                         const defaultNames = [t('createProfile'), '未命名節點', '新配置', 'Untitled Node', 'Untitled'];
@@ -965,7 +1025,7 @@ HTML_CONTENT = r"""
                     loadingModels.value = true;
                     try {
                         const cleanKey = selectedProfile.value.apiKey ? selectedProfile.value.apiKey.trim() : '';
-                        const res = await fetch('/relay/v1/models', { headers: { 'X-Upstream-Base': selectedProfile.value.baseUrl.trim(), 'Authorization': `Bearer ${cleanKey}` }});
+                        const res = await fetch('/relay/v1/models', { headers: upstreamHeaders(selectedProfile.value, cleanKey) });
                         const d = await res.json(); 
                         let rawModels = d.data || d.models || d;
                         fetchedModels.value = rawModels.sort((a, b) => {
@@ -1016,7 +1076,7 @@ HTML_CONTENT = r"""
                     try {
                         const cleanKey = activeProfile.value.apiKey ? activeProfile.value.apiKey.trim() : '';
                         const res = await fetch('/relay/v1/chat/completions', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Upstream-Base': activeProfile.value.baseUrl.trim(), 'Authorization': `Bearer ${cleanKey}` },
+                            method: 'POST', headers: { 'Content-Type': 'application/json', ...upstreamHeaders(activeProfile.value, cleanKey) },
                             body: JSON.stringify({ model: activeProfile.value.model.trim(), messages: chatHistory.value.slice(0, -1), stream: true })
                         });
                         const reader = res.body.getReader(); const decoder = new TextDecoder();
@@ -1064,7 +1124,22 @@ class SyncPayload(BaseModel):
     base_url: str
     api_key: str
     model: str
+    organization: str = ""
+    project: str = ""
     verify_ssl: bool = True
+
+def build_upstream_headers(auth: str, organization: str = "", project: str = "") -> dict:
+    headers = {
+        "Authorization": auth,
+        "HTTP-Referer": f"http://127.0.0.1:{RELAY_PORT}",
+        "X-Title": "Codex Web Relay",
+        "Content-Type": "application/json"
+    }
+    if organization:
+        headers["OpenAI-Organization"] = organization
+    if project:
+        headers["OpenAI-Project"] = project
+    return headers
 
 def sse_message(event_name: str, payload: dict) -> bytes:
     return f"event: {event_name}\ndata: {json.dumps(payload)}\n\n".encode("utf-8")
@@ -1103,10 +1178,12 @@ async def sync_state(payload: SyncPayload):
 async def proxy_models(request: Request):
     base_url = request.headers.get("X-Upstream-Base", "").rstrip('/')
     auth = request.headers.get("Authorization", "")
+    organization = request.headers.get("OpenAI-Organization", "")
+    project = request.headers.get("OpenAI-Project", "")
     verify_ssl = ACTIVE_PROFILE_STATE.get("verify_ssl", True)
     async with httpx.AsyncClient(timeout=15.0, verify=verify_ssl) as client:
         try:
-            res = await client.get(f"{base_url}/models", headers={"Authorization": auth})
+            res = await client.get(f"{base_url}/models", headers=build_upstream_headers(auth, organization, project))
             return res.json()
         except: return {"data": []}
 
@@ -1255,11 +1332,15 @@ async def main_proxy(request: Request):
     if is_from_web:
         base_url = request.headers.get("X-Upstream-Base", "").rstrip('/')
         auth = request.headers.get("Authorization", "")
+        organization = request.headers.get("OpenAI-Organization", "")
+        project = request.headers.get("OpenAI-Project", "")
         model = body.get("model")
     else:
         global ACTIVE_PROFILE_STATE
         base_url = ACTIVE_PROFILE_STATE["base_url"]
         auth = f"Bearer {ACTIVE_PROFILE_STATE['api_key']}"
+        organization = ACTIVE_PROFILE_STATE.get("organization", "")
+        project = ACTIVE_PROFILE_STATE.get("project", "")
         model = ACTIVE_PROFILE_STATE["model"]
         
         instructions = body.pop("instructions", None)
@@ -1407,12 +1488,7 @@ async def main_proxy(request: Request):
         ]:
             body.pop(garbage_key, None)
 
-    headers = {
-        "Authorization": auth,
-        "HTTP-Referer": "http://127.0.0.1:4446",
-        "X-Title": "Codex Web Relay",
-        "Content-Type": "application/json"
-    }
+    headers = build_upstream_headers(auth, organization, project)
     
     logger.info(f"🚀 轉發至: {base_url} | 模型: {model}")
     return StreamingResponse(

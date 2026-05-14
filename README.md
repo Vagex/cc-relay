@@ -10,7 +10,7 @@ The web console now ships with local copies of its frontend assets, so it does n
 
 - Provides a browser control panel at `http://127.0.0.1:4446`.
 - Lets you create, edit, reorder, import, and export provider profiles.
-- Supports OpenAI-compatible providers such as DeepSeek, SiliconFlow, OpenRouter, Kimi, Qwen, Hunyuan, Baidu Qianfan, Nvidia NIM, Groq, Together AI, Mistral, xAI, GitHub Models, Ollama, LM Studio, and vLLM.
+- Supports OpenAI official API plus OpenAI-compatible providers such as DeepSeek, SiliconFlow, OpenRouter, Kimi, Qwen, Hunyuan, Baidu Qianfan, Nvidia NIM, Groq, Together AI, Mistral, xAI, GitHub Models, Ollama, LM Studio, and vLLM.
 - Fetches model lists from the selected provider through `/relay/v1/models`.
 - Exposes Codex-facing endpoints under `/relay/v1`.
 - Converts Codex/Responses-style requests into upstream `/chat/completions` requests.
@@ -115,10 +115,19 @@ Each profile contains:
 - Provider name
 - Base URL
 - API key
+- Optional OpenAI Organization and Project IDs for OpenAI official API profiles
 - Model ID
 - Icon and display metadata
 
 The web console includes presets for common OpenAI-compatible services, but you can also use any custom provider that exposes compatible `/models` and `/chat/completions` endpoints.
+
+For OpenAI official API:
+
+- Use the `OpenAI API` preset.
+- Base URL defaults to `https://api.openai.com/v1`.
+- Authentication uses an OpenAI API key through `Authorization: Bearer ...`.
+- If your account requires them, fill in `OpenAI-Organization` and `OpenAI-Project` in the optional fields.
+- Account login is intentionally not proxied; keep Codex Desktop account login in Codex Desktop and use API keys for relay traffic.
 
 For local providers:
 
