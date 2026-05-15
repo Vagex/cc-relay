@@ -36,6 +36,79 @@ class ModelsProxyTest(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(codex_web_relay.app)
 
+    def test_codex_app_requests_use_synced_active_profile(self):
+        captured = {}
+
+        async def fake_stream_generator(upstream_url, headers, payload, is_codex_app):
+            captured["upstream_url"] = upstream_url
+            captured["headers"] = headers
+            captured["payload"] = payload
+            captured["is_codex_app"] = is_codex_app
+            yield b"data: [DONE]\n\n"
+
+        self.client.post(
+            "/relay/v1/internal/sync",
+            json={
+                "base_url": "https://api.deepseek.com/v1",
+                "api_key": "deepseek-secret",
+                "model": "deepseek-chat",
+                "organization": "",
+                "project": "",
+                "verify_ssl": True,
+            },
+        )
+
+        with patch.object(codex_web_relay, "stream_generator", fake_stream_generator):
+            response = self.client.post(
+                "/relay/v1/responses",
+                json={
+                    "model": "stale-gemma-model",
+                    "input": "hello",
+                    "instructions": "be concise",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["upstream_url"], "https://api.deepseek.com/v1/chat/completions")
+        self.assertEqual(captured["headers"]["Authorization"], "Bearer deepseek-secret")
+        self.assertEqual(captured["payload"]["model"], "deepseek-chat")
+        self.assertNotIn("input", captured["payload"])
+        self.assertNotIn("instructions", captured["payload"])
+        self.assertTrue(captured["is_codex_app"])
+
+    def test_web_console_requests_keep_explicit_upstream_headers(self):
+        captured = {}
+
+        async def fake_stream_generator(upstream_url, headers, payload, is_codex_app):
+            captured["upstream_url"] = upstream_url
+            captured["headers"] = headers
+            captured["payload"] = payload
+            captured["is_codex_app"] = is_codex_app
+            yield b"data: [DONE]\n\n"
+
+        with patch.object(codex_web_relay, "stream_generator", fake_stream_generator):
+            response = self.client.post(
+                "/relay/v1/chat/completions",
+                headers={
+                    "X-Upstream-Base": "https://api.openai.com/v1",
+                    "Authorization": "Bearer web-key",
+                    "OpenAI-Organization": "org_test",
+                    "OpenAI-Project": "proj_test",
+                },
+                json={
+                    "model": "gpt-4.1",
+                    "messages": [{"role": "user", "content": "hello"}],
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["upstream_url"], "https://api.openai.com/v1/chat/completions")
+        self.assertEqual(captured["headers"]["Authorization"], "Bearer web-key")
+        self.assertEqual(captured["headers"]["OpenAI-Organization"], "org_test")
+        self.assertEqual(captured["headers"]["OpenAI-Project"], "proj_test")
+        self.assertEqual(captured["payload"]["model"], "gpt-4.1")
+        self.assertFalse(captured["is_codex_app"])
+
     def test_sync_state_can_be_read_back_without_secret(self):
         response = self.client.post(
             "/relay/v1/internal/sync",
