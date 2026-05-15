@@ -46,12 +46,28 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("if (!synced) throw new Error(t('syncFailed'));", self.source)
         self.assertIn("...upstreamHeaders(profile, cleanKey)", self.source)
 
-    def test_chat_history_resets_when_model_changes(self):
-        self.assertIn("const chatProfileFingerprint = (profile) => JSON.stringify", self.source)
-        self.assertIn("const previousChatProfile = chatProfileFingerprint(activeProfile.value);", self.source)
-        self.assertIn("if (previousChatProfile !== chatProfileFingerprint(target))", self.source)
-        self.assertIn("chatHistory.value = [];", self.source)
-        self.assertIn("chatResetForModel", self.source)
+    def test_chat_history_is_isolated_per_profile_model(self):
+        self.assertIn("const storageChatHistoriesKey = 'codex_chat_histories';", self.source)
+        self.assertIn("const chatHistoryKey = (profile) =>", self.source)
+        self.assertIn("id: profile.id || ''", self.source)
+        self.assertIn("baseUrl: normalizeUrl(profile.baseUrl || '')", self.source)
+        self.assertIn("model: profile.model || ''", self.source)
+        self.assertIn("saveChatHistoryForProfile(previousProfile);", self.source)
+        self.assertIn("loadChatHistoryForProfile(target);", self.source)
+        self.assertIn("saveChatHistoryForProfile(profile);", self.source)
+        self.assertIn("chatSwitchedForModel", self.source)
+        self.assertNotIn("chatResetForModel", self.source)
+
+    def test_chat_history_can_be_archived_deleted_and_restored(self):
+        self.assertIn("const storageChatArchivesKey = 'codex_chat_archives';", self.source)
+        self.assertIn("const archiveCurrentChat = () =>", self.source)
+        self.assertIn("const deleteCurrentChatHistory = () =>", self.source)
+        self.assertIn("const restoreArchivedChat = (archive) =>", self.source)
+        self.assertIn("const deleteArchivedChat = (archiveId) =>", self.source)
+        self.assertIn("writeChatArchives(archives);", self.source)
+        self.assertIn("deleteChatHistoryForProfile(profile);", self.source)
+        self.assertIn("archive.messages.slice(-40)", self.source)
+        self.assertIn("window.confirm(t('confirmDeleteChat'))", self.source)
 
     def test_user_chat_bubble_is_plain(self):
         self.assertIn("terminalUser: '終端指令'", self.source)

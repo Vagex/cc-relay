@@ -350,6 +350,40 @@ HTML_CONTENT = r"""
 
                 <div v-else class="absolute inset-0 flex flex-col bg-transparent">
                     <div id="chatBox" class="chat-container overflow-y-auto p-8 space-y-8">
+                        <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/55 backdrop-blur-xl px-4 py-3 shadow-sm">
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold uppercase tracking-wide text-slate-500">{{ t('chatHistory') }}</div>
+                                <div class="text-sm font-semibold text-slate-700 truncate">{{ activeProfile?.name || t('unsetModel') }} · {{ activeProfile?.model || t('unsetModel') }}</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button @click="archiveCurrentChat" :disabled="!chatHistory.length || gen" class="px-3 py-2 rounded-xl bg-white/80 hover:bg-white border border-slate-200 text-slate-700 text-xs font-bold transition disabled:opacity-40">
+                                    {{ t('archiveChat') }}
+                                </button>
+                                <button @click="deleteCurrentChatHistory" :disabled="!chatHistory.length || gen" class="px-3 py-2 rounded-xl bg-white/80 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-700 hover:text-rose-700 text-xs font-bold transition disabled:opacity-40">
+                                    {{ t('deleteChat') }}
+                                </button>
+                                <button @click="showHistoryManager = !showHistoryManager" class="px-3 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-900 text-white text-xs font-bold transition">
+                                    {{ t('historyManager') }}
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="showHistoryManager" class="max-w-4xl mx-auto rounded-2xl border border-white/70 bg-white/70 backdrop-blur-2xl p-4 shadow-md">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-sm font-extrabold text-slate-700">{{ t('archivedChats') }}</div>
+                                <div class="text-xs text-slate-500">{{ archivedChats.length }}</div>
+                            </div>
+                            <div v-if="!archivedChats.length" class="text-sm text-slate-500 py-3">{{ t('noArchives') }}</div>
+                            <div v-else class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                <div v-for="archive in archivedChats" :key="archive.id" class="flex items-center gap-3 rounded-xl bg-white/80 border border-slate-200/80 px-3 py-2">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-bold text-slate-700 truncate">{{ archive.profileName }} · {{ archive.model || t('unsetModel') }}</div>
+                                        <div class="text-xs text-slate-500">{{ formatArchiveTime(archive.createdAt) }} · {{ archive.messages.length }} {{ t('messagesUnit') }}</div>
+                                    </div>
+                                    <button @click="restoreArchivedChat(archive)" :disabled="gen" class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition disabled:opacity-40">{{ t('restoreArchive') }}</button>
+                                    <button @click="deleteArchivedChat(archive.id)" :disabled="gen" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition disabled:opacity-40">{{ t('deleteArchive') }}</button>
+                                </div>
+                            </div>
+                        </div>
                         <div v-for="(msg, i) in chatHistory" :key="i" class="flex flex-col">
                             <div :class="msg.role === 'user' 
                                 ? 'self-end bg-white/80 text-slate-800 p-4 rounded-xl max-w-[85%] shadow-sm border border-slate-200/80 backdrop-blur-sm'
@@ -443,7 +477,23 @@ HTML_CONTENT = r"""
                         tlsLabel: '上游安全',
                         activeProfile: '已啟用目前節點：{name}',
                         syncFailed: '同步目前配置失敗，請檢查 relay 是否仍在運行。',
-                        chatResetForModel: '模型已切換，終端對話已重置。',
+                        chatSwitchedForModel: '已切換到此模型的對話歷史。',
+                        chatHistory: '對話歷史',
+                        archiveChat: '歸檔',
+                        deleteChat: '刪除',
+                        historyManager: '歷史',
+                        archivedChats: '已歸檔對話',
+                        noArchives: '目前模型還沒有歸檔對話。',
+                        restoreArchive: '恢復',
+                        deleteArchive: '刪除',
+                        messagesUnit: '則',
+                        noChatToArchive: '目前沒有可歸檔的對話。',
+                        archiveSaved: '對話已歸檔。',
+                        currentHistoryDeleted: '目前對話已刪除。',
+                        archiveDeleted: '歸檔已刪除。',
+                        archiveRestored: '歸檔已恢復到目前對話。',
+                        confirmDeleteChat: '確定刪除目前模型的對話歷史嗎？',
+                        confirmDeleteArchive: '確定刪除此歸檔嗎？',
                         testConnecting: '測試連線中...',
                         testOk: '✅ [{name}] 連線成功！',
                         testFail: '❌ 連線失敗 (HTTP {status})',
@@ -562,7 +612,23 @@ HTML_CONTENT = r"""
                         tlsLabel: 'Upstream security',
                         activeProfile: 'Enabled profile: {name}',
                         syncFailed: 'Failed to sync the active profile. Check whether the relay is still running.',
-                        chatResetForModel: 'Model changed. Chat history was reset.',
+                        chatSwitchedForModel: 'Switched to this model chat history.',
+                        chatHistory: 'Chat history',
+                        archiveChat: 'Archive',
+                        deleteChat: 'Delete',
+                        historyManager: 'History',
+                        archivedChats: 'Archived chats',
+                        noArchives: 'No archived chats for this model yet.',
+                        restoreArchive: 'Restore',
+                        deleteArchive: 'Delete',
+                        messagesUnit: 'messages',
+                        noChatToArchive: 'There is no chat to archive.',
+                        archiveSaved: 'Chat archived.',
+                        currentHistoryDeleted: 'Current chat deleted.',
+                        archiveDeleted: 'Archive deleted.',
+                        archiveRestored: 'Archive restored to the current chat.',
+                        confirmDeleteChat: 'Delete the current chat history for this model?',
+                        confirmDeleteArchive: 'Delete this archive?',
                         testConnecting: 'Testing connection...',
                         testOk: '✅ [{name}] connected successfully.',
                         testFail: '❌ Connection failed (HTTP {status})',
@@ -675,10 +741,13 @@ HTML_CONTENT = r"""
                 const activeProfileId = ref(null); 
                 const selectedProfileId = ref(null);
                 const selectedProfileSnapshot = ref('');
+                const selectedProfileChatKey = ref('');
                 const isEditing = ref(false);
                 const chatHistory = ref([]); 
                 const input = ref(''); 
                 const gen = ref(false);
+                const showHistoryManager = ref(false);
+                const chatArchiveVersion = ref(0);
                 const fetchedModels = ref([]); 
                 const loadingModels = ref(false); 
                 const showModelDropdown = ref(false);
@@ -690,6 +759,8 @@ HTML_CONTENT = r"""
                 const storageActiveKey = 'codex_active_id';
                 const storageSettingsKey = 'codex_relay_settings';
                 const storageSessionSecretsKey = 'codex_session_api_keys';
+                const storageChatHistoriesKey = 'codex_chat_histories';
+                const storageChatArchivesKey = 'codex_chat_archives';
 
                 const loadSettings = () => {
                     try {
@@ -727,6 +798,70 @@ HTML_CONTENT = r"""
                 const readSessionSecrets = () => {
                     try { return JSON.parse(sessionStorage.getItem(storageSessionSecretsKey) || '{}'); }
                     catch (_) { return {}; }
+                };
+
+                const readChatHistories = () => {
+                    try { return JSON.parse(localStorage.getItem(storageChatHistoriesKey) || '{}'); }
+                    catch (_) { return {}; }
+                };
+
+                const readChatArchives = () => {
+                    try {
+                        const archives = JSON.parse(localStorage.getItem(storageChatArchivesKey) || '[]');
+                        return Array.isArray(archives) ? archives : [];
+                    } catch (_) { return []; }
+                };
+
+                const writeChatArchives = (archives) => {
+                    localStorage.setItem(storageChatArchivesKey, JSON.stringify(archives.slice(0, 100)));
+                    chatArchiveVersion.value += 1;
+                };
+
+                const chatHistoryKey = (profile) => {
+                    if (!profile) return '';
+                    return JSON.stringify({
+                        id: profile.id || '',
+                        baseUrl: normalizeUrl(profile.baseUrl || ''),
+                        model: profile.model || ''
+                    });
+                };
+
+                const saveChatHistoryForKey = (key) => {
+                    if (!key) return;
+                    const histories = readChatHistories();
+                    histories[key] = chatHistory.value.slice(-40);
+                    localStorage.setItem(storageChatHistoriesKey, JSON.stringify(histories));
+                };
+
+                const saveChatHistoryForProfile = (profile = activeProfile.value) => {
+                    saveChatHistoryForKey(chatHistoryKey(profile));
+                };
+
+                const loadChatHistoryForProfile = (profile) => {
+                    const key = chatHistoryKey(profile);
+                    const histories = readChatHistories();
+                    chatHistory.value = key && Array.isArray(histories[key]) ? histories[key] : [];
+                };
+
+                const deleteChatHistoryForProfile = (profile = activeProfile.value) => {
+                    const key = chatHistoryKey(profile);
+                    if (!key) return;
+                    const histories = readChatHistories();
+                    delete histories[key];
+                    localStorage.setItem(storageChatHistoriesKey, JSON.stringify(histories));
+                    chatHistory.value = [];
+                };
+
+                const deleteStoredChatsForProfileId = (profileId) => {
+                    if (!profileId) return;
+                    const histories = readChatHistories();
+                    Object.keys(histories).forEach((key) => {
+                        try {
+                            if (JSON.parse(key).id === profileId) delete histories[key];
+                        } catch (_) {}
+                    });
+                    localStorage.setItem(storageChatHistoriesKey, JSON.stringify(histories));
+                    writeChatArchives(readChatArchives().filter(archive => archive.profileId !== profileId));
                 };
 
                 const persistSessionSecrets = () => {
@@ -910,10 +1045,6 @@ HTML_CONTENT = r"""
                 const normalizeUrl = (value) => (value || '').trim().replace(/\/+$/, '');
                 const activeProfile = computed(() => profiles.value.find(p => p.id === activeProfileId.value));
                 const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedProfileId.value) || activeProfile.value);
-                const chatProfileFingerprint = (profile) => JSON.stringify({
-                    baseUrl: normalizeUrl(profile?.baseUrl || ''),
-                    model: profile?.model || ''
-                });
                 const activeSyncPayload = computed(() => {
                     const profile = activeProfile.value;
                     if (!profile) return '';
@@ -939,10 +1070,16 @@ HTML_CONTENT = r"""
                 });
                 const captureSelectedProfileSnapshot = () => {
                     selectedProfileSnapshot.value = selectedProfile.value ? profileSnapshot(selectedProfile.value) : '';
+                    selectedProfileChatKey.value = selectedProfile.value ? chatHistoryKey(selectedProfile.value) : '';
                 };
                 const selectedProfileDirty = computed(() => {
                     if (!selectedProfile.value) return false;
                     return profileSnapshot(selectedProfile.value) !== selectedProfileSnapshot.value;
+                });
+                const archivedChats = computed(() => {
+                    chatArchiveVersion.value;
+                    const key = chatHistoryKey(activeProfile.value);
+                    return readChatArchives().filter(archive => archive.profileKey === key);
                 });
                 
                 onMounted(() => {
@@ -968,6 +1105,7 @@ HTML_CONTENT = r"""
                     document.documentElement.lang = resolvedLang.value;
                     document.title = t('appTitle');
                     persistProfiles();
+                    loadChatHistoryForProfile(activeProfile.value);
                     sync();
                 });
 
@@ -1056,15 +1194,14 @@ HTML_CONTENT = r"""
                         isEditing.value = true;
                         return;
                     }
-                    const previousChatProfile = chatProfileFingerprint(activeProfile.value);
+                    const previousProfile = activeProfile.value;
                     selectedProfileId.value = id;
                     const synced = await sync(target);
                     if (!synced) return;
+                    saveChatHistoryForProfile(previousProfile);
                     activeProfileId.value = id;
-                    if (previousChatProfile !== chatProfileFingerprint(target)) {
-                        chatHistory.value = [];
-                        showToast(t('chatResetForModel'));
-                    }
+                    loadChatHistoryForProfile(target);
+                    showToast(t('chatSwitchedForModel'));
                     captureSelectedProfileSnapshot();
                     showToast(t('activeProfile', { name: target.name }));
                 };
@@ -1157,24 +1294,86 @@ HTML_CONTENT = r"""
                 const saveAndExit = async () => {
                     isEditing.value = false;
                     if (selectedProfileDirty.value) {
-                        const shouldResetChat = selectedProfile.value?.id === activeProfileId.value;
-                        captureSelectedProfileSnapshot();
-                        if (shouldResetChat) {
+                        const shouldReloadChat = selectedProfile.value?.id === activeProfileId.value;
+                        const previousChatKey = selectedProfileChatKey.value;
+                        if (shouldReloadChat) {
                             const synced = await sync(selectedProfile.value);
-                            if (synced) {
-                                chatHistory.value = [];
-                                showToast(t('chatResetForModel'));
+                            if (!synced) {
+                                isEditing.value = true;
+                                return;
                             }
+                            saveChatHistoryForKey(previousChatKey);
+                            loadChatHistoryForProfile(selectedProfile.value);
+                            captureSelectedProfileSnapshot();
+                            showToast(t('chatSwitchedForModel'));
+                        } else {
+                            captureSelectedProfileSnapshot();
                         }
                         showToast(t('saveAndEnable'));
                     }
                 };
 
                 const deleteProfile = (id) => {
+                    const deletedWasActive = activeProfileId.value === id;
                     profiles.value = profiles.value.filter(p => p.id !== id);
+                    deleteStoredChatsForProfileId(id);
                     if (activeProfileId.value === id) activeProfileId.value = profiles.value[0]?.id || null;
                     if (selectedProfileId.value === id) selectedProfileId.value = activeProfileId.value || profiles.value[0]?.id || null;
                     if (!profiles.value.length) createNewProfile();
+                    if (deletedWasActive) loadChatHistoryForProfile(activeProfile.value);
+                };
+
+                const archiveCurrentChat = () => {
+                    if (!chatHistory.value.length) {
+                        showToast(t('noChatToArchive'), 'error');
+                        return;
+                    }
+                    const profile = activeProfile.value;
+                    const key = chatHistoryKey(profile);
+                    if (!profile || !key) return;
+                    const archives = readChatArchives();
+                    archives.unshift({
+                        id: (window.crypto?.randomUUID ? window.crypto.randomUUID() : Date.now().toString(36)),
+                        profileKey: key,
+                        profileId: profile.id || '',
+                        profileName: profile.name || t('unsetModel'),
+                        model: profile.model || '',
+                        baseUrl: normalizeUrl(profile.baseUrl || ''),
+                        createdAt: new Date().toISOString(),
+                        messages: chatHistory.value.slice()
+                    });
+                    writeChatArchives(archives);
+                    deleteChatHistoryForProfile(profile);
+                    showHistoryManager.value = true;
+                    showToast(t('archiveSaved'));
+                };
+
+                const deleteCurrentChatHistory = () => {
+                    if (!chatHistory.value.length) return;
+                    if (!window.confirm(t('confirmDeleteChat'))) return;
+                    deleteChatHistoryForProfile(activeProfile.value);
+                    showToast(t('currentHistoryDeleted'));
+                };
+
+                const deleteArchivedChat = (archiveId) => {
+                    if (!window.confirm(t('confirmDeleteArchive'))) return;
+                    writeChatArchives(readChatArchives().filter(archive => archive.id !== archiveId));
+                    showToast(t('archiveDeleted'));
+                };
+
+                const restoreArchivedChat = (archive) => {
+                    if (!archive || !Array.isArray(archive.messages)) return;
+                    saveChatHistoryForProfile(activeProfile.value);
+                    chatHistory.value = archive.messages.slice(-40);
+                    saveChatHistoryForProfile(activeProfile.value);
+                    showHistoryManager.value = false;
+                    nextTick(() => { const b = document.getElementById('chatBox'); if (b) b.scrollTop = b.scrollHeight; });
+                    showToast(t('archiveRestored'));
+                };
+
+                const formatArchiveTime = (value) => {
+                    try { return new Date(value).toLocaleString(resolvedLang.value === 'en' ? 'en-US' : 'zh-TW'); }
+                    catch (_) { return value || ''; }
                 };
 
                 const send = async () => {
@@ -1206,18 +1405,19 @@ HTML_CONTENT = r"""
                                 }
                             });
                         }
+                        saveChatHistoryForProfile(profile);
                     } catch(e) { chatHistory.value[idx].content = '錯誤: ' + e.message; } finally { gen.value = false; }
                 };
 
                 return { 
                     t, settings, resolvedLang,
                     presets, profiles, activeProfileId, selectedProfileId, activeProfile, selectedProfile, selectedProfileDirty, isEditing,
-                    chatHistory, input, gen, fetchedModels, loadingModels, syncStatus, 
+                    chatHistory, input, gen, fetchedModels, loadingModels, syncStatus, showHistoryManager, archivedChats,
                     showModelDropdown, toast, showToast, fileInput, sortedProfiles,
                     copyConfig, exportConfig, importConfig, showFullKey,
                     draggedIndex, dragOverIndex, onDragStart, onDragOver, onDragLeave, onDragEnd, onDrop,
                     createNewProfile, selectProfile, enableProfile, enableSelectedProfile, editProfile, editActiveProfile, testProfile,
-                    deleteProfile,
+                    deleteProfile, archiveCurrentChat, deleteCurrentChatHistory, deleteArchivedChat, restoreArchivedChat, formatArchiveTime,
                     applyPreset, fetchModels, selectModel, saveAndExit, send,
                     renderMd: (t) => marked.parse(t) 
                 };
