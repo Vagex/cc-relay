@@ -31,6 +31,15 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("'host.docker.internal'", self.source)
         self.assertIn("new URL(profile?.baseUrl || '').hostname", self.source)
 
+    def test_legacy_preset_names_are_treated_as_generated_names(self):
+        self.assertIn("const legacyPresetNames = [", self.source)
+        self.assertIn("'本地 Ollama'", self.source)
+        self.assertIn("'Ollama Docker Desktop'", self.source)
+        self.assertIn("...legacyPresetNames", self.source)
+        self.assertIn("...Object.values(presets).flatMap", self.source)
+        self.assertIn("translations['zh-TW'][preset.nameKey]", self.source)
+        self.assertIn("translations.en[preset.nameKey]", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

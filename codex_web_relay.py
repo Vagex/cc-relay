@@ -488,8 +488,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI (Grok)',
                         presetGithub: 'GitHub Models',
-                        presetOllama: 'Ollama（Relay 本機運行）',
-                        presetOllamaDocker: 'Ollama（Relay 在 Docker，Ollama 在 Windows）',
+                        presetOllama: 'Ollama（本機地址）',
+                        presetOllamaDocker: 'Ollama（Docker 宿主機地址）',
                         presetLmstudio: '本地 LM Studio',
                         presetVllm: '本地 vLLM',
                         openaiOrganization: 'OpenAI Organization（選填）',
@@ -605,8 +605,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI Grok',
                         presetGithub: 'GitHub Models',
-                        presetOllama: 'Ollama (Relay on host)',
-                        presetOllamaDocker: 'Ollama (Relay in Docker, Ollama on Windows)',
+                        presetOllama: 'Ollama (localhost)',
+                        presetOllamaDocker: 'Ollama (Docker host)',
                         presetLmstudio: 'Local LM Studio',
                         presetVllm: 'Local vLLM',
                         openaiOrganization: 'OpenAI Organization (optional)',
@@ -767,6 +767,38 @@ HTML_CONTENT = r"""
                     }
                     return headers;
                 };
+
+                const legacyPresetNames = [
+                    '本地 Ollama',
+                    'Ollama (Docker 桌面版)',
+                    'Local Ollama',
+                    'Ollama Docker Desktop',
+                    '本機 Relay → 本機 Ollama',
+                    'Docker Relay → Windows Ollama',
+                    'Local Relay → Local Ollama',
+                    'Ollama（Relay 本機運行）',
+                    'Ollama（Relay 在 Docker，Ollama 在 Windows）',
+                    'Ollama (Relay on host)',
+                    'Ollama (Relay in Docker, Ollama on Windows)',
+                    'Ollama（本機 Relay）',
+                    'Ollama（Docker Relay）',
+                    'Ollama (Host Relay)',
+                    'Ollama (Docker Relay)'
+                ];
+
+                const generatedProfileNames = () => [
+                    t('createProfile'),
+                    '未命名節點',
+                    '新配置',
+                    'Untitled Node',
+                    'Untitled',
+                    ...legacyPresetNames,
+                    ...Object.values(presets).flatMap(preset => [
+                        t(preset.nameKey),
+                        translations['zh-TW'][preset.nameKey],
+                        translations.en[preset.nameKey]
+                    ])
+                ];
 
                 const persistProfiles = () => {
                     persistSessionSecrets();
@@ -1030,11 +1062,10 @@ HTML_CONTENT = r"""
                         if(selectedProfile.value.project === undefined) selectedProfile.value.project = '';
                         
                         const currentName = selectedProfile.value.name || '';
-                        const defaultNames = [t('createProfile'), '未命名節點', '新配置', 'Untitled Node', 'Untitled'];
-                        const isDefaultName = currentName === '' || defaultNames.some(name => currentName === name) || currentName.includes('節點') || currentName.toLowerCase().includes('node');
-                        const isAnyPresetName = Object.values(presets).some(preset => currentName === t(preset.nameKey));
+                        const knownGeneratedNames = generatedProfileNames();
+                        const isGeneratedName = currentName === '' || knownGeneratedNames.some(name => currentName === name) || currentName.includes('節點') || currentName.toLowerCase().includes('node');
 
-                        if (isDefaultName || isAnyPresetName) {
+                        if (isGeneratedName) {
                             selectedProfile.value.name = t(p.nameKey);
                         }
                     }
