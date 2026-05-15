@@ -39,6 +39,12 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("if (!synced) throw new Error(t('syncFailed'));", self.source)
         self.assertIn("...upstreamHeaders(profile, cleanKey)", self.source)
 
+    def test_user_chat_bubble_is_plain(self):
+        self.assertIn("terminalUser: '終端指令'", self.source)
+        self.assertIn("terminalUser: 'User input'", self.source)
+        self.assertIn("self-end bg-white/80 text-slate-800 p-4 rounded-xl", self.source)
+        self.assertNotIn("msg.role === 'user' ? 'prose-invert text-white'", self.source)
+
     def test_local_ollama_hosts_do_not_require_api_keys(self):
         self.assertIn("'127.0.0.1'", self.source)
         self.assertIn("'host.docker.internal'", self.source)

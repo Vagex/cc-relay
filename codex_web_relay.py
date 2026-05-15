@@ -352,12 +352,12 @@ HTML_CONTENT = r"""
                     <div id="chatBox" class="chat-container overflow-y-auto p-8 space-y-8">
                         <div v-for="(msg, i) in chatHistory" :key="i" class="flex flex-col">
                             <div :class="msg.role === 'user' 
-                                ? 'self-end bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-5 rounded-[2rem] rounded-tr-md max-w-[85%] shadow-xl shadow-blue-500/20 border border-blue-400/50 backdrop-blur-md' 
-                                : 'self-start w-full max-w-4xl border border-white/60 p-6 bg-white/70 backdrop-blur-2xl rounded-[2rem] rounded-tl-md shadow-lg'">
-                                <div class="font-extrabold text-xs opacity-80 mb-3 flex items-center gap-2 tracking-wide uppercase">
+                                ? 'self-end bg-white/80 text-slate-800 p-4 rounded-xl max-w-[85%] shadow-sm border border-slate-200/80 backdrop-blur-sm'
+                                : 'self-start w-full max-w-4xl border border-white/60 p-6 bg-white/70 backdrop-blur-2xl rounded-2xl shadow-md'">
+                                <div class="font-semibold text-xs text-slate-500 mb-2 flex items-center gap-2">
                                     {{ msg.role === 'user' ? t('terminalUser') : activeProfile?.icon + ' ' + (activeProfile?.model || 'AI') }}
                                 </div>
-                                <div class="prose prose-sm md:prose-base max-w-none" :class="msg.role === 'user' ? 'prose-invert text-white' : 'text-slate-800'" v-html="renderMd(msg.content)"></div>
+                                <div class="prose prose-sm md:prose-base max-w-none text-slate-800" v-html="renderMd(msg.content)"></div>
                             </div>
                         </div>
                     </div>
@@ -403,7 +403,7 @@ HTML_CONTENT = r"""
                         enableSelected: '啟用此配置',
                         alreadyRunning: '正在運行',
                         missingApiKey: '此配置缺少 API Key，請先填寫後再啟用。',
-                        terminalUser: '👤 終端指令',
+                        terminalUser: '終端指令',
                         send: '發送 🚀',
                         inputPlaceholder: '輸入測試指令，按 Enter 發送...',
                         createProfile: '未命名節點',
@@ -521,7 +521,7 @@ HTML_CONTENT = r"""
                         enableSelected: 'Enable This Profile',
                         alreadyRunning: 'Running',
                         missingApiKey: 'This profile is missing an API key. Add one before enabling it.',
-                        terminalUser: '👤 User Input',
+                        terminalUser: 'User input',
                         send: 'Send 🚀',
                         inputPlaceholder: 'Type a test prompt and press Enter...',
                         createProfile: 'Untitled Node',
