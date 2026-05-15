@@ -443,6 +443,7 @@ HTML_CONTENT = r"""
                         tlsLabel: '上游安全',
                         activeProfile: '已啟用目前節點：{name}',
                         syncFailed: '同步目前配置失敗，請檢查 relay 是否仍在運行。',
+                        chatResetForModel: '模型已切換，終端對話已重置。',
                         testConnecting: '測試連線中...',
                         testOk: '✅ [{name}] 連線成功！',
                         testFail: '❌ 連線失敗 (HTTP {status})',
@@ -561,6 +562,7 @@ HTML_CONTENT = r"""
                         tlsLabel: 'Upstream security',
                         activeProfile: 'Enabled profile: {name}',
                         syncFailed: 'Failed to sync the active profile. Check whether the relay is still running.',
+                        chatResetForModel: 'Model changed. Chat history was reset.',
                         testConnecting: 'Testing connection...',
                         testOk: '✅ [{name}] connected successfully.',
                         testFail: '❌ Connection failed (HTTP {status})',
@@ -905,8 +907,13 @@ HTML_CONTENT = r"""
                     reader.readAsText(file);
                 };
 
+                const normalizeUrl = (value) => (value || '').trim().replace(/\/+$/, '');
                 const activeProfile = computed(() => profiles.value.find(p => p.id === activeProfileId.value));
                 const selectedProfile = computed(() => profiles.value.find(p => p.id === selectedProfileId.value) || activeProfile.value);
+                const chatProfileFingerprint = (profile) => JSON.stringify({
+                    baseUrl: normalizeUrl(profile?.baseUrl || ''),
+                    model: profile?.model || ''
+                });
                 const activeSyncPayload = computed(() => {
                     const profile = activeProfile.value;
                     if (!profile) return '';
@@ -976,8 +983,6 @@ HTML_CONTENT = r"""
                     document.documentElement.lang = resolvedLang.value;
                     document.title = t('appTitle');
                 }, { immediate: true });
-
-                const normalizeUrl = (value) => (value || '').trim().replace(/\/+$/, '');
 
                 const sync = async (profile = activeProfile.value) => {
                     if (!profile) return false;
@@ -1051,10 +1056,15 @@ HTML_CONTENT = r"""
                         isEditing.value = true;
                         return;
                     }
+                    const previousChatProfile = chatProfileFingerprint(activeProfile.value);
                     selectedProfileId.value = id;
                     const synced = await sync(target);
                     if (!synced) return;
                     activeProfileId.value = id;
+                    if (previousChatProfile !== chatProfileFingerprint(target)) {
+                        chatHistory.value = [];
+                        showToast(t('chatResetForModel'));
+                    }
                     captureSelectedProfileSnapshot();
                     showToast(t('activeProfile', { name: target.name }));
                 };
@@ -1147,9 +1157,14 @@ HTML_CONTENT = r"""
                 const saveAndExit = async () => {
                     isEditing.value = false;
                     if (selectedProfileDirty.value) {
+                        const shouldResetChat = selectedProfile.value?.id === activeProfileId.value;
                         captureSelectedProfileSnapshot();
-                        if (selectedProfile.value?.id === activeProfileId.value) {
-                            await sync(selectedProfile.value);
+                        if (shouldResetChat) {
+                            const synced = await sync(selectedProfile.value);
+                            if (synced) {
+                                chatHistory.value = [];
+                                showToast(t('chatResetForModel'));
+                            }
                         }
                         showToast(t('saveAndEnable'));
                     }

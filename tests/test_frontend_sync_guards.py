@@ -46,6 +46,13 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("if (!synced) throw new Error(t('syncFailed'));", self.source)
         self.assertIn("...upstreamHeaders(profile, cleanKey)", self.source)
 
+    def test_chat_history_resets_when_model_changes(self):
+        self.assertIn("const chatProfileFingerprint = (profile) => JSON.stringify", self.source)
+        self.assertIn("const previousChatProfile = chatProfileFingerprint(activeProfile.value);", self.source)
+        self.assertIn("if (previousChatProfile !== chatProfileFingerprint(target))", self.source)
+        self.assertIn("chatHistory.value = [];", self.source)
+        self.assertIn("chatResetForModel", self.source)
+
     def test_user_chat_bubble_is_plain(self):
         self.assertIn("terminalUser: '終端指令'", self.source)
         self.assertIn("terminalUser: 'User input'", self.source)
