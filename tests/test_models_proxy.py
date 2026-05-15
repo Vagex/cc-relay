@@ -36,6 +36,27 @@ class ModelsProxyTest(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(codex_web_relay.app)
 
+    def test_sync_state_can_be_read_back_without_secret(self):
+        response = self.client.post(
+            "/relay/v1/internal/sync",
+            json={
+                "base_url": "https://api.deepseek.com/v1",
+                "api_key": "test-secret",
+                "model": "deepseek-chat",
+                "organization": "",
+                "project": "",
+                "verify_ssl": True,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        state = self.client.get("/relay/v1/internal/state")
+        self.assertEqual(state.status_code, 200)
+        payload = state.json()
+        self.assertEqual(payload["base_url"], "https://api.deepseek.com/v1")
+        self.assertEqual(payload["model"], "deepseek-chat")
+        self.assertTrue(payload["api_key_set"])
+        self.assertNotIn("api_key", payload)
+
     def test_missing_upstream_base_returns_400(self):
         response = self.client.get("/relay/v1/models")
         self.assertEqual(response.status_code, 400)

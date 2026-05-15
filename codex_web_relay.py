@@ -977,6 +977,8 @@ HTML_CONTENT = r"""
                     document.title = t('appTitle');
                 }, { immediate: true });
 
+                const normalizeUrl = (value) => (value || '').trim().replace(/\/+$/, '');
+
                 const sync = async (profile = activeProfile.value) => {
                     if (!profile) return false;
                     try {
@@ -993,6 +995,29 @@ HTML_CONTENT = r"""
                             })
                         });
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const stateRes = await fetch('/relay/v1/internal/state');
+                        if (!stateRes.ok) throw new Error(`state HTTP ${stateRes.status}`);
+                        const state = await stateRes.json();
+                        const expected = {
+                            base_url: normalizeUrl(profile.baseUrl),
+                            model: (profile.model || '').trim(),
+                            organization: (profile.organization || '').trim(),
+                            project: (profile.project || '').trim(),
+                            verify_ssl: settings.value.verifyUpstreamTLS
+                        };
+                        const actual = {
+                            base_url: normalizeUrl(state.base_url),
+                            model: state.model || '',
+                            organization: state.organization || '',
+                            project: state.project || '',
+                            verify_ssl: state.verify_ssl !== false
+                        };
+                        const matches = expected.base_url === actual.base_url
+                            && expected.model === actual.model
+                            && expected.organization === actual.organization
+                            && expected.project === actual.project
+                            && expected.verify_ssl === actual.verify_ssl;
+                        if (!matches) throw new Error(`state mismatch: expected ${expected.model}, got ${actual.model}`);
                         syncStatus.value = 'Synced';
                         return true;
                     } catch(e) {
@@ -1119,10 +1144,13 @@ HTML_CONTENT = r"""
                     showModelDropdown.value = false;
                 };
 
-                const saveAndExit = () => {
+                const saveAndExit = async () => {
                     isEditing.value = false;
                     if (selectedProfileDirty.value) {
                         captureSelectedProfileSnapshot();
+                        if (selectedProfile.value?.id === activeProfileId.value) {
+                            await sync(selectedProfile.value);
+                        }
                         showToast(t('saveAndEnable'));
                     }
                 };
@@ -1243,7 +1271,18 @@ async def sync_state(payload: SyncPayload):
     except AttributeError: data = payload.dict()
     ACTIVE_PROFILE_STATE.update(data) 
     logger.info(f"🔄 同步成功: {ACTIVE_PROFILE_STATE['model']}")
-    return {"status": "success"}
+    return {"status": "success", "active": public_active_state()}
+
+def public_active_state() -> dict:
+    state = dict(ACTIVE_PROFILE_STATE)
+    if state.get("api_key"):
+        state["api_key_set"] = True
+    state.pop("api_key", None)
+    return state
+
+@app.get("/relay/v1/internal/state")
+async def get_active_state():
+    return public_active_state()
 
 @app.get("/relay/v1/models")
 async def proxy_models(request: Request):

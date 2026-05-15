@@ -28,10 +28,17 @@ class FrontendSyncGuardsTest(unittest.TestCase):
 
     def test_enabling_profile_waits_for_sync(self):
         self.assertIn("const sync = async (profile = activeProfile.value)", self.source)
+        self.assertIn("const stateRes = await fetch('/relay/v1/internal/state');", self.source)
+        self.assertIn("if (!matches) throw new Error", self.source)
         self.assertIn("const enableProfile = async (id) =>", self.source)
         self.assertIn("const synced = await sync(target);", self.source)
         self.assertIn("if (!synced) return;", self.source)
         self.assertIn("const enableSelectedProfile = async () =>", self.source)
+
+    def test_saving_active_profile_waits_for_sync(self):
+        self.assertIn("const saveAndExit = async () =>", self.source)
+        self.assertIn("selectedProfile.value?.id === activeProfileId.value", self.source)
+        self.assertIn("await sync(selectedProfile.value);", self.source)
 
     def test_web_chat_syncs_active_snapshot_before_send(self):
         self.assertIn("const profile = activeProfile.value;", self.source)
