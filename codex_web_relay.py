@@ -488,8 +488,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI (Grok)',
                         presetGithub: 'GitHub Models',
-                        presetOllama: 'Ollama（本機地址）',
-                        presetOllamaDocker: 'Ollama（Docker 宿主機地址）',
+                        presetOllama: 'Ollama',
+                        presetOllamaDocker: 'Ollama（Docker）',
                         presetLmstudio: '本地 LM Studio',
                         presetVllm: '本地 vLLM',
                         openaiOrganization: 'OpenAI Organization（選填）',
@@ -605,8 +605,8 @@ HTML_CONTENT = r"""
                         presetMistral: 'Mistral AI',
                         presetXai: 'xAI Grok',
                         presetGithub: 'GitHub Models',
-                        presetOllama: 'Ollama (localhost)',
-                        presetOllamaDocker: 'Ollama (Docker host)',
+                        presetOllama: 'Ollama',
+                        presetOllamaDocker: 'Ollama (Docker)',
                         presetLmstudio: 'Local LM Studio',
                         presetVllm: 'Local vLLM',
                         openaiOrganization: 'OpenAI Organization (optional)',
@@ -783,7 +783,11 @@ HTML_CONTENT = r"""
                     'Ollama（本機 Relay）',
                     'Ollama（Docker Relay）',
                     'Ollama (Host Relay)',
-                    'Ollama (Docker Relay)'
+                    'Ollama (Docker Relay)',
+                    'Ollama（本機地址）',
+                    'Ollama（Docker 宿主機地址）',
+                    'Ollama (localhost)',
+                    'Ollama (Docker host)'
                 ];
 
                 const generatedProfileNames = () => [

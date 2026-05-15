@@ -131,8 +131,8 @@ For OpenAI official API:
 
 For local providers:
 
-- `Ollama (localhost)`: `http://127.0.0.1:11434/v1`, for direct local access.
-- `Ollama (Docker host)`: `http://host.docker.internal:11434/v1`, for Docker Desktop access to Ollama running on the Windows host.
+- `Ollama`: `http://127.0.0.1:11434/v1`, for direct local access.
+- `Ollama (Docker)`: `http://host.docker.internal:11434/v1`, for Docker Desktop access to Ollama running on the Windows host.
 - LM Studio: `http://localhost:1234/v1`
 - vLLM: `http://localhost:8000/v1`
 
