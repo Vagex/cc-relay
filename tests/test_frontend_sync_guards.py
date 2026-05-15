@@ -26,6 +26,19 @@ class FrontendSyncGuardsTest(unittest.TestCase):
         self.assertIn("const activeSyncPayload = computed", self.source)
         self.assertRegex(self.source, r"watch\(activeSyncPayload,\s*\(\) => \{\s*sync\(\);")
 
+    def test_enabling_profile_waits_for_sync(self):
+        self.assertIn("const sync = async (profile = activeProfile.value)", self.source)
+        self.assertIn("const enableProfile = async (id) =>", self.source)
+        self.assertIn("const synced = await sync(target);", self.source)
+        self.assertIn("if (!synced) return;", self.source)
+        self.assertIn("const enableSelectedProfile = async () =>", self.source)
+
+    def test_web_chat_syncs_active_snapshot_before_send(self):
+        self.assertIn("const profile = activeProfile.value;", self.source)
+        self.assertIn("const synced = await sync(profile);", self.source)
+        self.assertIn("if (!synced) throw new Error(t('syncFailed'));", self.source)
+        self.assertIn("...upstreamHeaders(profile, cleanKey)", self.source)
+
     def test_local_ollama_hosts_do_not_require_api_keys(self):
         self.assertIn("'127.0.0.1'", self.source)
         self.assertIn("'host.docker.internal'", self.source)

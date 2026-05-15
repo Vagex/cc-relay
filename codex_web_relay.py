@@ -442,6 +442,7 @@ HTML_CONTENT = r"""
                         backupLabel: '備份策略',
                         tlsLabel: '上游安全',
                         activeProfile: '已啟用目前節點：{name}',
+                        syncFailed: '同步目前配置失敗，請檢查 relay 是否仍在運行。',
                         testConnecting: '測試連線中...',
                         testOk: '✅ [{name}] 連線成功！',
                         testFail: '❌ 連線失敗 (HTTP {status})',
@@ -559,6 +560,7 @@ HTML_CONTENT = r"""
                         backupLabel: 'Backup policy',
                         tlsLabel: 'Upstream security',
                         activeProfile: 'Enabled profile: {name}',
+                        syncFailed: 'Failed to sync the active profile. Check whether the relay is still running.',
                         testConnecting: 'Testing connection...',
                         testOk: '✅ [{name}] connected successfully.',
                         testFail: '❌ Connection failed (HTTP {status})',
@@ -975,23 +977,29 @@ HTML_CONTENT = r"""
                     document.title = t('appTitle');
                 }, { immediate: true });
 
-                const sync = async () => {
-                    if (!activeProfile.value) return;
+                const sync = async (profile = activeProfile.value) => {
+                    if (!profile) return false;
                     try {
-                        const cleanKey = activeProfile.value.apiKey ? activeProfile.value.apiKey.trim() : '';
-                        await fetch('/relay/v1/internal/sync', {
+                        const cleanKey = profile.apiKey ? profile.apiKey.trim() : '';
+                        const res = await fetch('/relay/v1/internal/sync', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                base_url: activeProfile.value.baseUrl.trim(),
+                                base_url: profile.baseUrl.trim(),
                                 api_key: cleanKey,
-                                model: activeProfile.value.model.trim(),
-                                organization: (activeProfile.value.organization || '').trim(),
-                                project: (activeProfile.value.project || '').trim(),
+                                model: profile.model.trim(),
+                                organization: (profile.organization || '').trim(),
+                                project: (profile.project || '').trim(),
                                 verify_ssl: settings.value.verifyUpstreamTLS
                             })
                         });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         syncStatus.value = 'Synced';
-                    } catch(e) { syncStatus.value = 'Error'; }
+                        return true;
+                    } catch(e) {
+                        syncStatus.value = 'Error';
+                        showToast(t('syncFailed'), 'error');
+                        return false;
+                    }
                 };
 
                 const createNewProfile = () => {
@@ -1010,7 +1018,7 @@ HTML_CONTENT = r"""
                     isEditing.value = true;
                 };
 
-                const enableProfile = (id) => {
+                const enableProfile = async (id) => {
                     const target = profiles.value.find(p => p.id === id);
                     if (requiresApiKey(target) && !target?.apiKey?.trim()) {
                         showToast(t('missingApiKey'), 'error');
@@ -1018,14 +1026,16 @@ HTML_CONTENT = r"""
                         isEditing.value = true;
                         return;
                     }
-                    activeProfileId.value = id;
                     selectedProfileId.value = id;
+                    const synced = await sync(target);
+                    if (!synced) return;
+                    activeProfileId.value = id;
                     captureSelectedProfileSnapshot();
-                    showToast(t('activeProfile', { name: activeProfile.value.name }));
+                    showToast(t('activeProfile', { name: target.name }));
                 };
 
-                const enableSelectedProfile = () => {
-                    if (selectedProfile.value) enableProfile(selectedProfile.value.id);
+                const enableSelectedProfile = async () => {
+                    if (selectedProfile.value) await enableProfile(selectedProfile.value.id);
                 };
 
                 const editProfile = (id) => { selectProfile(id); };
@@ -1131,10 +1141,14 @@ HTML_CONTENT = r"""
                     chatHistory.value.push({ role: 'assistant', content: '' });
                     const idx = chatHistory.value.length - 1;
                     try {
-                        const cleanKey = activeProfile.value.apiKey ? activeProfile.value.apiKey.trim() : '';
+                        const profile = activeProfile.value;
+                        if (!profile) throw new Error(t('unsetModel'));
+                        const synced = await sync(profile);
+                        if (!synced) throw new Error(t('syncFailed'));
+                        const cleanKey = profile.apiKey ? profile.apiKey.trim() : '';
                         const res = await fetch('/relay/v1/chat/completions', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json', ...upstreamHeaders(activeProfile.value, cleanKey) },
-                            body: JSON.stringify({ model: activeProfile.value.model.trim(), messages: chatHistory.value.slice(0, -1), stream: true })
+                            method: 'POST', headers: { 'Content-Type': 'application/json', ...upstreamHeaders(profile, cleanKey) },
+                            body: JSON.stringify({ model: profile.model.trim(), messages: chatHistory.value.slice(0, -1), stream: true })
                         });
                         const reader = res.body.getReader(); const decoder = new TextDecoder();
                         while(true) {
